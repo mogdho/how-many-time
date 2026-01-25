@@ -10,7 +10,7 @@ export default defineConfig({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icons.svg'],
             manifest: {
-                name: 'How many times I have done it',
+                name: 'How many time I have done it',
                 short_name: 'HowManyTimes',
                 description: 'Private, offline single-action logger',
                 theme_color: '#000000',
