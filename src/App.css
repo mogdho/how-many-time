@@ -382,7 +382,8 @@ button {
 }
 
 .header-sticky {
-    position: relative;
+    position: sticky;
+    top: 0;
     z-index: 50;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(20px);
@@ -629,4 +630,27 @@ button {
 
 .action-button-inner-ring:hover {
     border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Subtle diagonal stripe background texture */
+.bg-diagonal-stripes {
+    position: relative;
+}
+
+.bg-diagonal-stripes::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 18px,
+        rgba(255, 255, 255, 0.025) 18px,
+        rgba(255, 255, 255, 0.025) 19px
+    );
 }

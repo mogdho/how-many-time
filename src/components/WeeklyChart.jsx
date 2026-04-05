@@ -26,41 +26,20 @@ const WeeklyChart = ({ logs, mode = 'historical' }) => {
         startOfThisWeek.setHours(0, 0, 0, 0);
 
         if (mode === 'historical') {
-            // Historical Mode: Past Months, 3w Ago, 2w Ago, Last Week
-            const weeks = [1, 2, 3].map(i => {
-                const start = new Date(startOfThisWeek);
-                start.setDate(startOfThisWeek.getDate() - (i * 7));
-                const end = new Date(start);
-                end.setDate(start.getDate() + 7);
+            const months = [];
+            
+            for (let i = 4; i >= 0; i--) {
+                const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
                 const count = logs.filter(l => l.timestamp >= start.getTime() && l.timestamp < end.getTime()).length;
-                let label = i === 1 ? "Last Week" : `${i}w Ago`;
-                return { start, count, label };
-            }).reverse();
-
-            const earliestWeekStart = weeks[0].start.getTime();
-            const historicalCount = logs.filter(l => l.timestamp < earliestWeekStart).length;
-
-            const allData = [
-                { label: 'Past Months', count: historicalCount },
-                ...weeks
-            ];
+                const label = start.toLocaleString('default', { month: 'short' });
+                months.push({ label, count });
+            }
 
             return {
-                labels: allData.map(d => d.label),
-                datasets: [{
-                    data: allData.map(d => d.count),
-                    backgroundColor: [
-                        'rgba(248, 85, 100, 0.1)',
-                        'rgba(248, 85, 100, 0.4)',
-                        'rgba(248, 85, 100, 0.6)',
-                        'rgba(248, 85, 100, 0.8)'
-                    ],
-                    borderColor: 'rgba(248, 85, 100, 1)',
-                    borderWidth: 1,
-                    borderRadius: 12,
-                    barThickness: 60,
-                }],
-                hasData: allData.some(d => d.count > 0)
+                isHistoricalCustom: true,
+                months,
+                hasData: months.some(m => m.count > 0)
             };
         } else {
             // Current Week Mode: Breakdown by Weekdays (Sun-Sat) with Comparison
@@ -93,10 +72,15 @@ const WeeklyChart = ({ logs, mode = 'historical' }) => {
                         label: 'This Week',
                         data: comparisonData.map(d => d.count),
                         backgroundColor: comparisonData.map((_, i) => {
+                            const weekColors = ['#003049', '#d62828', '#f77f00', '#fcbf49', '#53cbf3', '#5478ff', '#111fa2'];
                             const today = new Date().getDay();
-                            return i === today ? 'rgba(248, 85, 100, 1)' : 'rgba(248, 85, 100, 0.4)';
+                            // High opacity for today, slightly muted for other days
+                            return i === today ? weekColors[i] : weekColors[i] + '80'; // '80' appends 50% opacity
                         }),
-                        borderColor: 'rgba(248, 85, 100, 0.6)',
+                        borderColor: comparisonData.map((_, i) => {
+                            const weekColors = ['#003049', '#d62828', '#f77f00', '#fcbf49', '#53cbf3', '#5478ff', '#111fa2'];
+                            return weekColors[i];
+                        }),
                         borderWidth: 1,
                         borderRadius: 8,
                         barThickness: 34,
@@ -146,13 +130,13 @@ const WeeklyChart = ({ logs, mode = 'historical' }) => {
         scales: {
             y: {
                 beginAtZero: true,
-                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
-                ticks: { color: '#999', font: { size: 10 }, stepSize: 1 }
+                grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+                ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 }, stepSize: 1 }
             },
             x: {
                 stacked: true, // This effectively centers both bars at the same point when not 'grouped'
                 grid: { display: false },
-                ticks: { color: '#666', font: { size: 10 } }
+                ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 } }
             }
         },
         animation: {
@@ -163,17 +147,75 @@ const WeeklyChart = ({ logs, mode = 'historical' }) => {
 
     if (!data.hasData) {
         return (
-            <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-[#f85564]/20 rounded-2xl">
-                <span className="text-[#333] text-[10px] uppercase tracking-widest text-center px-6">
+            <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-[#EFBC7E]/30 rounded-2xl w-full">
+                <span className="text-white/60 text-[10px] uppercase tracking-widest text-center px-6">
                     {mode === 'historical' ? 'No historical activity' : 'No activity this week'}
                 </span>
             </div>
         )
     }
 
+    if (data.isHistoricalCustom) {
+        const maxExpected = Math.max(...data.months.map(m => m.count), 15);
+        
+        const circleColors = ['#4e8d9c', '#85c79a', '#edf7bd', '#ffc570', '#fbe8ce', '#faacbf'];
+
+        return (
+            <div className="flex flex-row flex-wrap justify-center items-center gap-4 md:gap-8 w-full mt-4 bg-white/5 rounded-3xl p-6 md:p-8 border border-white/10 shadow-lg">
+                {data.months.map((m, idx) => {
+                    const radius = 24;
+                    const circumference = 2 * Math.PI * radius;
+                    const percent = Math.min((m.count / maxExpected) * 100, 100);
+                    const strokeDashoffset = circumference - (percent / 100) * circumference;
+                    const strokeColor = circleColors[idx % circleColors.length];
+                    
+                    return (
+                        <motion.div 
+                            key={idx} 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.1, duration: 0.4 }}
+                            className="flex flex-col items-center group"
+                        >
+                            <div className="relative flex items-center justify-center w-16 h-16 transition-transform group-hover:scale-105">
+                                <svg className="w-full h-full transform -rotate-90 drop-shadow-md" viewBox="0 0 60 60">
+                                    {/* Track */}
+                                    <circle 
+                                        cx="30" cy="30" r={radius} 
+                                        stroke="rgba(255, 255, 255, 0.1)" 
+                                        strokeWidth="5" 
+                                        fill="rgba(255,255,255,0.05)" 
+                                    />
+                                    {/* Progress */}
+                                    <motion.circle 
+                                        cx="30" cy="30" r={radius} 
+                                        stroke={strokeColor} 
+                                        strokeWidth="5" 
+                                        fill="transparent" 
+                                        strokeLinecap="round"
+                                        initial={{ strokeDashoffset: circumference }}
+                                        animate={{ strokeDashoffset: strokeDashoffset }}
+                                        transition={{ duration: 1.5, ease: "easeOut", delay: idx * 0.1 }}
+                                        style={{ strokeDasharray: circumference }}
+                                    />
+                                </svg>
+                                <span className="absolute flex items-center justify-center text-white font-black text-sm tracking-tighter">
+                                    {m.count}
+                                </span>
+                            </div>
+                            <span className="mt-3 text-[11px] text-white/70 font-bold uppercase tracking-widest group-hover:text-white transition-colors">
+                                {m.label}
+                            </span>
+                        </motion.div>
+                    );
+                })}
+            </div>
+        );
+    }
+
     return (
-        <div className="relative">
-            <div className="h-48">
+        <div className="relative w-full">
+            <div className="h-48 w-full bg-white/5 rounded-3xl p-6 border border-white/10 shadow-lg">
                 <Bar data={data} options={options} />
             </div>
         </div>

@@ -1,26 +1,36 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const ActionButton = ({ onClick }) => {
+const ActionButton = ({ onClick, isGuilty }) => {
     return (
         <div className="action-button-outer-ring">
             <div className="action-button-inner-ring">
                 <motion.button
                     onClick={onClick}
-                    whileHover={{
-                        scale: 1.05,
-                        backgroundColor: "#fff",
-                        boxShadow: "0 0 50px rgba(255, 255, 255, 0.4)",
-                        color: "#000"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.92, y: 4 }}
+                    className="w-56 h-56 rounded-full flex items-center justify-center text-white shadow-2xl relative overflow-hidden border-none"
+                    animate={{
+                        backgroundColor: isGuilty ? "#ae2448" : "#ED9145",
+                        boxShadow: isGuilty
+                            ? '0 0 50px rgba(174, 36, 72, 0.6), 0 25px 50px -12px rgba(174, 36, 72, 0.5)'
+                            : '0 0 50px rgba(239, 188, 126, 0.0), 0 25px 50px -12px rgba(237, 145, 69, 0.5)'
                     }}
-                    whileTap={{
-                        scale: 0.92,
-                        boxShadow: "inset 0 0 20px rgba(0,0,0,0.2)",
-                        y: 4
+                    transition={{
+                        backgroundColor: { duration: 0.4, ease: "easeOut" }
                     }}
-                    className="w-56 h-56 rounded-full bg-white flex items-center justify-center text-black shadow-2xl transition-all duration-200"
                 >
-                    <span className="text-4xl font-black tracking-tighter cursor-pointer">AGAIN!</span>
+                    <span 
+                        className="text-4xl md:text-6xl tracking-widest drop-shadow-md uppercase italic cursor-pointer relative z-20"
+                        style={{ 
+                            fontFamily: "'Montserrat', sans-serif",
+                            color: '#F3F4F6', 
+                            fontWeight: 900,
+                            WebkitTextStroke: '0.8px #F3F4F6',
+                        }}
+                    >
+                        GUILTY
+                    </span>
                 </motion.button>
             </div>
         </div>

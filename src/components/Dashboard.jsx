@@ -4,7 +4,7 @@ import { saveLog, getLogs, deleteLastLog, getUser, wipeData } from '../lib/db';
 import HeroCount from './HeroCount';
 import ActionButton from './ActionButton';
 import WeeklyChart from './WeeklyChart';
-import { LogOut, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 const Dashboard = () => {
     const [logs, setLogs] = useState([]);
@@ -51,50 +51,34 @@ const Dashboard = () => {
         return () => clearInterval(interval);
     }, [showUndo, undoTimer]);
 
-    const handleLogout = () => {
-        window.location.reload(); // Simple reload triggers AuthUnlock
-    };
-
     return (
-        <div className="min-h-screen flex flex-col items-center pb-20">
-            <header className="header-sticky w-full flex justify-center">
-                <div className="max-w-6xl w-full flex justify-between items-center px-12">
-                    <div className="profile-card">
-                        <span className="font-bold tracking-tighter text-lg uppercase italic">
+        <div className="min-h-screen flex flex-col items-center pb-6 md:pb-20 bg-gradient-to-br from-[#3852AF] to-[#5a7bcc] bg-diagonal-stripes">
+            <header className="header-sticky w-full flex justify-center !p-4 md:!p-6 z-50">
+                <div className="max-w-6xl w-full flex justify-center items-center px-2 md:px-12">
+                    <div className="profile-card !bg-[#EFBC7E] !text-[#3852AF] !px-4 !py-2 md:!px-6 md:!py-3">
+                        <span className="font-bold tracking-tighter text-xs md:text-lg uppercase italic">
                             {username}'s Log
                         </span>
                     </div>
-
-                    <button onClick={handleLogout} className="exit-button">
-                        <span>EXIT</span>
-                        <LogOut size={18} />
-                    </button>
                 </div>
             </header>
 
-            <main className="flex-grow flex flex-col items-center w-full px-6 pt-10 text-center">
-                <div className="max-w-6xl w-full flex flex-col items-center justify-center">
-                    {/* Quote Card */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="quote-card"
-                    >
-                        <p className="quote-text">"Every action you take is a vote for the type of person you wish to become."</p>
-                        <p className="quote-author">— James Clear</p>
-                    </motion.div>
+            <main className="flex-grow flex flex-col items-center w-full px-4 md:px-6 text-center justify-between">
+                <div className="max-w-6xl w-full flex flex-col items-center justify-between flex-grow">
 
-                    <div className="mb-48">
-                        <ActionButton onClick={handleAddLog} />
+                    {/* Centered Button Area via Flex-Grow */}
+                    <div className="flex-grow flex flex-col justify-center items-center w-full min-h-[35vh]">
+                        <div className="scale-75 md:scale-100">
+                            <ActionButton onClick={handleAddLog} isGuilty={showUndo} />
+                        </div>
                     </div>
 
-                    {/* Side-by-Side Charts */}
-                    <div className="grid-cols-layout w-full mt-32">
+                    {/* Stacked Charts */}
+                    <div className="flex flex-col w-full gap-8 md:gap-12 mt-8 md:mt-12">
                         {/* Historical Chart */}
-                        <section className="p-12 flex flex-col items-center">
-                            <header className="w-full text-center mb-12">
-                                <h2 className="text-[10px] uppercase font-bold tracking-[0.4em] mb-2 opacity-30 text-white">Monthly Narrative</h2>
-                                <p className="text-2xl font-black tracking-tighter text-white">Historical Overview</p>
+                        <section className="flex flex-col items-center border-t border-white/10 pt-8 mt-4">
+                            <header className="w-full text-center mb-6 md:mb-12">
+                                <h2 className="text-[10px] uppercase font-bold tracking-[0.4em] opacity-60 text-white">Monthly Fault</h2>
                             </header>
                             <div className="w-full">
                                 <WeeklyChart logs={logs} mode="historical" />
@@ -102,10 +86,9 @@ const Dashboard = () => {
                         </section>
 
                         {/* This Week Chart */}
-                        <section className="p-12 flex flex-col items-center">
-                            <header className="w-full text-center mb-12">
-                                <h2 className="text-[10px] uppercase font-bold tracking-[0.4em] mb-2 opacity-30 text-white">Current Cycle</h2>
-                                <p className="text-2xl font-black tracking-tighter text-white">This Week</p>
+                        <section className="flex flex-col items-center border-t border-white/10 pt-8 mt-4">
+                            <header className="w-full text-center mb-6 md:mb-12">
+                                <h2 className="text-[10px] uppercase font-bold tracking-[0.4em] opacity-60 text-white">Seven-days slip</h2>
                             </header>
                             <div className="w-full">
                                 <WeeklyChart logs={logs} mode="current" />
@@ -113,7 +96,7 @@ const Dashboard = () => {
                         </section>
                     </div>
 
-                    <footer className="pt-20 pb-16 flex flex-col items-center gap-8">
+                    <footer className="pt-12 md:pt-20 pb-4 md:pb-16 flex flex-col items-center gap-6 md:gap-8 mt-auto">
                         <button
                             onClick={async () => {
                                 if (confirm("Wipe all data permanently?")) {
@@ -121,34 +104,49 @@ const Dashboard = () => {
                                     window.location.reload();
                                 }
                             }}
-                            className="text-black/20 hover:text-red-600 transition-all text-xs font-bold flex items-center gap-2 px-4 py-2 rounded-lg border border-transparent hover:border-zinc-100"
+                            className="text-white/40 hover:text-white transition-all text-xs font-bold flex items-center gap-2 px-4 py-2 rounded-lg border border-transparent hover:border-white/20"
                         >
                             <Trash2 size={14} /> PANIC WIPE
                         </button>
-                        <p className="text-black/10 text-[11px] uppercase tracking-[0.2em] font-black">Private App / Local Only / No Tracking</p>
+                        <p className="text-white/30 text-[9px] md:text-[11px] uppercase tracking-[0.2em] font-black">Private App / Local Only / No Tracking</p>
                     </footer>
                 </div>
             </main>
 
             <AnimatePresence>
                 {showUndo && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 100, x: "-50%" }}
-                        animate={{ opacity: 1, y: 0, x: "-50%" }}
-                        exit={{ opacity: 0, y: 100, x: "-50%" }}
-                        className="toast-popup"
-                    >
-                        <div className="flex flex-col text-left">
-                            <span className="text-lg font-black tracking-tight text-white">Entry logged</span>
-                            <span className="text-sm font-bold text-white/40">Undo available for {undoTimer}s</span>
-                        </div>
-                        <button
+                    <div style={{
+                        position: 'fixed',
+                        bottom: '5rem',
+                        left: 0,
+                        right: 0,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        pointerEvents: 'none',
+                    }}>
+                        <motion.button
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 40 }}
                             onClick={handleUndo}
-                            className="bg-white text-black px-10 py-3 rounded-2xl text-base font-black hover:bg-zinc-200 transition-colors shadow-xl"
+                            style={{
+                                background: '#2f6b3f',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '16px',
+                                padding: '1.25rem 4rem',
+                                fontSize: '1.5rem',
+                                fontWeight: 900,
+                                letterSpacing: '0.15em',
+                                cursor: 'pointer',
+                                boxShadow: '0 20px 50px rgba(47, 107, 63, 0.6)',
+                                pointerEvents: 'auto',
+                            }}
                         >
                             UNDO
-                        </button>
-                    </motion.div>
+                        </motion.button>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
