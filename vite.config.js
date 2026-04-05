@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-    base: '/how-many-times-i-have-done-it/',
+    base: '/how-many-time-i-have-done-it/',
     plugins: [
         react(),
         VitePWA({
