@@ -20,20 +20,25 @@ export default defineConfig({
       manifest: {
         name: 'How many times I have done it',
         short_name: 'HMT',
-        description: 'Track your guilty pleasures',
-        theme_color: '#3852AF',
-        background_color: '#3852AF',
+        description: 'Track your guilty pleasures. Private, local-only, no tracking.',
+        theme_color: '#c1272d',
+        background_color: '#c1272d',
         display: 'standalone',
+        orientation: 'portrait',
+        start_url: './',
+        scope: './',
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }

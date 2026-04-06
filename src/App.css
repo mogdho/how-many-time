@@ -660,3 +660,83 @@ button {
             rgba(255, 255, 255, 0.025) 18px,
             rgba(255, 255, 255, 0.025) 19px);
 }
+
+/* ============================================
+   ANIMATED GRADIENT BACKGROUND (from prayer.zayeef)
+   ============================================ */
+
+/* Animated multi-color shifting background */
+.animated-bg {
+    background: linear-gradient(-45deg, #1a1a3e, #3852AF, #1f4080, #0d1f3c);
+    background-size: 400% 400%;
+    animation: hmt-gradient-animation 18s ease infinite;
+}
+
+@keyframes hmt-gradient-animation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Gradient text (animated) */
+.gradient-text {
+    background: linear-gradient(135deg, #EFBC7E, #f5d08a, #e8a84f);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: hmt-gradient-shift 4s ease-in-out infinite;
+}
+
+@keyframes hmt-gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Glassmorphism card */
+.glass-card {
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+/* Pulse glow — for attention-worthy elements */
+.pulse-glow {
+    animation: hmt-pulse-glow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes hmt-pulse-glow {
+    from {
+        box-shadow: 0 0 15px rgba(56, 82, 175, 0.3);
+    }
+    to {
+        box-shadow: 0 0 40px rgba(56, 82, 175, 0.7);
+    }
+}
+
+/* Float — subtle vertical bob for hero elements */
+.float {
+    animation: hmt-float 6s ease-in-out infinite;
+}
+
+@keyframes hmt-float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}

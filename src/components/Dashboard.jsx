@@ -138,7 +138,7 @@ const Dashboard = ({ deferredPrompt, onInstallClick }) => {
     const basePath = import.meta.env.BASE_URL || '/';
 
     return (
-        <div className="min-h-screen flex flex-col items-center pb-6 md:pb-20 bg-gradient-to-br from-[#3852AF] to-[#5a7bcc] bg-diagonal-stripes">
+        <div className="min-h-screen flex flex-col items-center pb-6 md:pb-20 animated-bg bg-diagonal-stripes">
             <header className="header-sticky w-full flex justify-center !p-4 md:!p-6 z-50">
                 <div className="max-w-6xl w-full flex justify-between items-center px-2 md:px-12">
                     {/* Spacer for centering */}
