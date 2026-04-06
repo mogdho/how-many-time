@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-    base: '/how-many-time/',
+    // এটি GitHub এবং Vercel উভয় জায়গাতেই কাজ করবে
+    base: process.env.NODE_ENV === 'production' ? '/how-many-time/' : '/',
     plugins: [
         react(),
         VitePWA({
