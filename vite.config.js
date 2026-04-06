@@ -20,23 +20,23 @@ export default defineConfig({
                 theme_color: '#000000',
                 background_color: '#000000',
                 display: 'standalone',
-                start_url: './',
-                scope: './',
+                start_url: '/how-many-time/',
+                scope: '/how-many-time/',
                 icons: [
                     {
-                        src: './pwa-192x192.png',
+                        src: 'pwa-192x192.png',
                         sizes: '192x192',
                         type: 'image/png',
                         purpose: 'any'
                     },
                     {
-                        src: './pwa-512x512.png',
+                        src: 'pwa-512x512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'any'
                     },
                     {
-                        src: './pwa-512x512.png',
+                        src: 'pwa-512x512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'maskable'
