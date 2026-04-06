@@ -5,6 +5,8 @@ import { saveUser as saveUserDB } from '../lib/db';
 
 const AuthSetup = ({ onComplete }) => {
     const [username, setUsername] = useState('');
+    const [guiltyPleasure, setGuiltyPleasure] = useState('');
+    const [monthlyLimit, setMonthlyLimit] = useState('');
     const [pin, setPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
     const [error, setError] = useState('');
@@ -21,7 +23,13 @@ const AuthSetup = ({ onComplete }) => {
         }
 
         const pinHash = await hashPINUtil(pin);
-        await saveUserDB({ username, pinHash, failedAttempts: 0 });
+        await saveUserDB({
+            username,
+            pinHash,
+            failedAttempts: 0,
+            guiltyPleasure: guiltyPleasure || 'Guilty Pleasure',
+            monthlyLimit: monthlyLimit ? parseInt(monthlyLimit, 10) : null
+        });
         onComplete();
     };
 
@@ -42,6 +50,28 @@ const AuthSetup = ({ onComplete }) => {
                         className="auth-input text-xl"
                         required
                         autoFocus
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[#888888] mb-2 uppercase tracking-widest">Guilty Pleasure</label>
+                    <input
+                        type="text"
+                        value={guiltyPleasure}
+                        onChange={(e) => setGuiltyPleasure(e.target.value)}
+                        className="auth-input auth-input-subtle text-xl"
+                        placeholder="(e.g smoking, drinking, weed)"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[#888888] mb-2 uppercase tracking-widest">Monthly Limit</label>
+                    <input
+                        type="number"
+                        min="1"
+                        value={monthlyLimit}
+                        onChange={(e) => setMonthlyLimit(e.target.value)}
+                        className="auth-input auth-input-subtle text-xl"
+                        placeholder="(e.g 10)"
+                        required
                     />
                 </div>
                 <div>

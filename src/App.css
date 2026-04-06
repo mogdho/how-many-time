@@ -359,6 +359,14 @@ button {
     box-shadow: none !important;
 }
 
+.auth-input-subtle::placeholder {
+    font-size: 1.00rem;
+    font-weight: 100;
+    opacity: 0.25;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
 /* Bottom Toast Popup */
 .toast-popup {
     position: fixed;
@@ -646,11 +654,9 @@ button {
     height: 100%;
     pointer-events: none;
     z-index: 0;
-    background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 18px,
-        rgba(255, 255, 255, 0.025) 18px,
-        rgba(255, 255, 255, 0.025) 19px
-    );
+    background: repeating-linear-gradient(45deg,
+            transparent,
+            transparent 18px,
+            rgba(255, 255, 255, 0.025) 18px,
+            rgba(255, 255, 255, 0.025) 19px);
 }

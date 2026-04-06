@@ -7,6 +7,7 @@ import './App.css';
 
 function App() {
     const [appState, setAppState] = useState('LOADING');
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
 
     useEffect(() => {
         const checkUser = async () => {
@@ -25,13 +26,34 @@ function App() {
         checkUser();
     }, []);
 
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+
     if (appState === 'LOADING') return <div className="bg-black min-h-screen" />;
 
     return (
-        <div className="bg-black min-h-screen text-white">
+        <div className="bg-black min-h-screen text-white relative">
             {appState === 'SETUP' && <AuthSetup onComplete={() => setAppState('DASHBOARD')} />}
             {appState === 'UNLOCK' && <AuthUnlock onUnlock={() => setAppState('DASHBOARD')} />}
-            {appState === 'DASHBOARD' && <Dashboard />}
+            {appState === 'DASHBOARD' && <Dashboard deferredPrompt={deferredPrompt} onInstallClick={handleInstallClick} />}
         </div>
     );
 }

@@ -18,7 +18,58 @@ ChartJS.register(
     Tooltip
 );
 
-const WeeklyChart = ({ logs, mode = 'historical' }) => {
+// Interpolate between two hex colors
+const lerpColor = (a, b, t) => {
+    const ah = parseInt(a.replace('#', ''), 16);
+    const bh = parseInt(b.replace('#', ''), 16);
+    const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+    const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+    const rr = Math.round(ar + (br - ar) * t);
+    const rg = Math.round(ag + (bg - ag) * t);
+    const rb = Math.round(ab + (bb - ab) * t);
+    return `rgb(${rr}, ${rg}, ${rb})`;
+};
+
+const HEART_RED = '#ce2626';
+const HEART_YELLOW_GREEN = '#383b16';  // deep dark depressing yellowish green
+const HEART_DARK_GREEN = '#152614';    // dark green
+const HEART_DARK = '#0f120a';          // dark olive black
+
+// 4-stop gradient: red → dark yellowish green → dark green → dark olive
+const getHeartColor = (count, limit) => {
+    if (count === 0) return HEART_RED;
+    if (count >= limit) return HEART_DARK;
+    const ratio = count / limit;
+    if (ratio <= 0.33) {
+        // red → dark yellowish green
+        return lerpColor(HEART_RED, HEART_YELLOW_GREEN, ratio / 0.33);
+    } else if (ratio <= 0.66) {
+        // dark yellowish green → dark green
+        return lerpColor(HEART_YELLOW_GREEN, HEART_DARK_GREEN, (ratio - 0.33) / 0.33);
+    } else {
+        // dark green → dark olive
+        return lerpColor(HEART_DARK_GREEN, HEART_DARK, (ratio - 0.66) / 0.34);
+    }
+};
+
+const HeartIcon = ({ color, size = 64 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+    </svg>
+);
+
+const BrokenHeartIcon = ({ color, size = 64 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Left half */}
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09L12 8l-2 3 2 3-1 4z" fill={color} />
+        {/* Right half - shifted right */}
+        <g transform="translate(2.5, -1.5)">
+            <path d="M10 22.85l1-4-2-3 2-3-2.5-3.76C9.59 6.81 11.26 6 13 6c3.08 0 5.5 2.42 5.5 5.5 0 3.78-3.4 6.86-8.55 11.54L10 22.85z" fill={color} />
+        </g>
+    </svg>
+);
+
+const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
     const data = useMemo(() => {
         const now = new Date();
         const startOfThisWeek = new Date(now);
@@ -71,16 +122,8 @@ const WeeklyChart = ({ logs, mode = 'historical' }) => {
                     {
                         label: 'This Week',
                         data: comparisonData.map(d => d.count),
-                        backgroundColor: comparisonData.map((_, i) => {
-                            const weekColors = ['#003049', '#d62828', '#f77f00', '#fcbf49', '#53cbf3', '#5478ff', '#111fa2'];
-                            const today = new Date().getDay();
-                            // High opacity for today, slightly muted for other days
-                            return i === today ? weekColors[i] : weekColors[i] + '80'; // '80' appends 50% opacity
-                        }),
-                        borderColor: comparisonData.map((_, i) => {
-                            const weekColors = ['#003049', '#d62828', '#f77f00', '#fcbf49', '#53cbf3', '#5478ff', '#111fa2'];
-                            return weekColors[i];
-                        }),
+                        backgroundColor: 'rgba(94, 122, 196, 0.55)',
+                        borderColor: '#5e7ac4',
                         borderWidth: 1,
                         borderRadius: 8,
                         barThickness: 34,
@@ -156,19 +199,14 @@ const WeeklyChart = ({ logs, mode = 'historical' }) => {
     }
 
     if (data.isHistoricalCustom) {
-        const maxExpected = Math.max(...data.months.map(m => m.count), 15);
-        
-        const circleColors = ['#4e8d9c', '#85c79a', '#edf7bd', '#ffc570', '#fbe8ce', '#faacbf'];
+        const limit = monthlyLimit || 30; // fallback
 
         return (
             <div className="flex flex-row flex-wrap justify-center items-center gap-4 md:gap-8 w-full mt-4 bg-white/5 rounded-3xl p-6 md:p-8 border border-white/10 shadow-lg">
                 {data.months.map((m, idx) => {
-                    const radius = 24;
-                    const circumference = 2 * Math.PI * radius;
-                    const percent = Math.min((m.count / maxExpected) * 100, 100);
-                    const strokeDashoffset = circumference - (percent / 100) * circumference;
-                    const strokeColor = circleColors[idx % circleColors.length];
-                    
+                    const isBroken = m.count > limit;
+                    const heartColor = isBroken ? HEART_DARK : getHeartColor(m.count, limit);
+
                     return (
                         <motion.div 
                             key={idx} 
@@ -177,31 +215,22 @@ const WeeklyChart = ({ logs, mode = 'historical' }) => {
                             transition={{ delay: idx * 0.1, duration: 0.4 }}
                             className="flex flex-col items-center group"
                         >
-                            <div className="relative flex items-center justify-center w-16 h-16 transition-transform group-hover:scale-105">
-                                <svg className="w-full h-full transform -rotate-90 drop-shadow-md" viewBox="0 0 60 60">
-                                    {/* Track */}
-                                    <circle 
-                                        cx="30" cy="30" r={radius} 
-                                        stroke="rgba(255, 255, 255, 0.1)" 
-                                        strokeWidth="5" 
-                                        fill="rgba(255,255,255,0.05)" 
-                                    />
-                                    {/* Progress */}
-                                    <motion.circle 
-                                        cx="30" cy="30" r={radius} 
-                                        stroke={strokeColor} 
-                                        strokeWidth="5" 
-                                        fill="transparent" 
-                                        strokeLinecap="round"
-                                        initial={{ strokeDashoffset: circumference }}
-                                        animate={{ strokeDashoffset: strokeDashoffset }}
-                                        transition={{ duration: 1.5, ease: "easeOut", delay: idx * 0.1 }}
-                                        style={{ strokeDasharray: circumference }}
-                                    />
-                                </svg>
-                                <span className="absolute flex items-center justify-center text-white font-black text-sm tracking-tighter">
-                                    {m.count}
-                                </span>
+                            <div className="relative flex items-center justify-center w-16 h-16 transition-transform group-hover:scale-110" style={{ filter: `drop-shadow(0 4px 12px ${heartColor}55)` }}>
+                                <motion.div
+                                    initial={{ scale: 0.5 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ duration: 0.5, ease: 'easeOut', delay: idx * 0.12 }}
+                                >
+                                    {isBroken 
+                                        ? <BrokenHeartIcon color={heartColor} size={52} />
+                                        : <HeartIcon color={heartColor} size={52} />
+                                    }
+                                </motion.div>
+                                {!isBroken && (
+                                    <span className="absolute flex items-center justify-center text-white font-black text-sm tracking-tighter" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                                        {m.count}
+                                    </span>
+                                )}
                             </div>
                             <span className="mt-3 text-[11px] text-white/70 font-bold uppercase tracking-widest group-hover:text-white transition-colors">
                                 {m.label}
