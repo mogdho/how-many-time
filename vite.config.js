@@ -7,11 +7,19 @@ export default defineConfig({
     plugins: [
         react(),
         VitePWA({
+            injectRegister: 'auto',
             registerType: 'autoUpdate',
             includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 navigateFallback: null,
+                // Add this to avoid Vite 6/Rolldown conflicts
+                skipWaiting: true,
+                clientsClaim: true,
+            },
+            // Add this line
+            experimental: {
+                directoryIndex: 'index.html',
             },
             manifest: {
                 name: 'How many time I have done it',
