@@ -1,57 +1,48 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-    // এটি GitHub এবং Vercel উভয় জায়গাতেই কাজ করবে
-    base: process.env.NODE_ENV === 'production' ? '/how-many-time/' : '/',
-    plugins: [
-        react(),
-        VitePWA({
-            injectRegister: 'auto',
-            registerType: 'autoUpdate',
-            includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
-            workbox: {
-                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-                navigateFallback: null,
-                // Add this to avoid Vite 6/Rolldown conflicts
-                skipWaiting: true,
-                clientsClaim: true,
-            },
-            // Add this line
-            experimental: {
-                directoryIndex: 'index.html',
-            },
-            manifest: {
-                name: 'How many time I have done it',
-                short_name: 'HMT',
-                description: 'Private, offline single-action logger',
-                theme_color: '#000000',
-                background_color: '#000000',
-                display: 'standalone',
-                start_url: '/how-many-time/',
-                scope: '/how-many-time/',
-                icons: [
-                    {
-                        src: 'pwa-192x192.png',
-                        sizes: '192x192',
-                        type: 'image/png',
-                        purpose: 'any'
-                    },
-                    {
-                        src: 'pwa-512x512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                        purpose: 'any'
-                    },
-                    {
-                        src: 'pwa-512x512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                        purpose: 'maskable'
-                    }
-                ]
-            }
-        })
-    ]
-});
+  // GitHub Pages এবং Vercel উভয়ের জন্য এটি সবচেয়ে নিরাপদ
+  base: './', 
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      // Vite 8/Rolldown এরর এড়াতে injectRegister 'script' ব্যবহার করুন
+      injectRegister: 'script', 
+      workbox: {
+        // এই অংশটি সাদা স্ক্রিন ফিক্স করতে সাহায্য করবে
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallback: 'index.html',
+        cleanupOutdatedCaches: true,
+      },
+      manifest: {
+        name: 'How many times I have done it',
+        short_name: 'HMT',
+        description: 'Track your guilty pleasures',
+        theme_color: '#3852AF',
+        background_color: '#3852AF',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      }
+    })
+  ],
+  build: {
+    // Vite 8 এর নতুন এরর এড়াতে এই সেটিংসটি যোগ করুন
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    }
+  }
+})
