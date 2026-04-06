@@ -35,8 +35,12 @@ const Dashboard = ({ deferredPrompt, onInstallClick }) => {
     }, []);
 
     const handleAddLog = async () => {
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate([200, 100, 200]);
+        // Vibrate must be called synchronously within a user interaction
+        if ('vibrate' in navigator) {
+            const result = navigator.vibrate(200);
+            console.log('[HMT] navigator.vibrate(200) called, result:', result);
+        } else {
+            console.log('[HMT] navigator.vibrate not supported on this device/browser');
         }
         
         const newLogId = await saveLog(Date.now());

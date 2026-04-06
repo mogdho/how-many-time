@@ -2,7 +2,7 @@
   "name": "how-many-times",
   "private": true,
   "version": "0.1.0",
-  "homepage": "https://mogdho.github.io/how-many-time-i-have-done-it/",
+  "homepage": "https://mogdho.github.io/how-many-time/",
   "type": "module",
   "scripts": {
     "dev": "vite",

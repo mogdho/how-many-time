@@ -3,12 +3,16 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-    base: '/how-many-time-i-have-done-it/',
+    base: '/how-many-time/',
     plugins: [
         react(),
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
+            workbox: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                navigateFallback: null,
+            },
             manifest: {
                 name: 'How many time I have done it',
                 short_name: 'HMT',
@@ -16,21 +20,23 @@ export default defineConfig({
                 theme_color: '#000000',
                 background_color: '#000000',
                 display: 'standalone',
-                start_url: '/how-many-time-i-have-done-it/',
-                scope: '/how-many-time-i-have-done-it/',
+                start_url: './',
+                scope: './',
                 icons: [
                     {
-                        src: 'pwa-192x192.png',
+                        src: './pwa-192x192.png',
                         sizes: '192x192',
-                        type: 'image/png'
+                        type: 'image/png',
+                        purpose: 'any'
                     },
                     {
-                        src: 'pwa-512x512.png',
+                        src: './pwa-512x512.png',
                         sizes: '512x512',
-                        type: 'image/png'
+                        type: 'image/png',
+                        purpose: 'any'
                     },
                     {
-                        src: 'pwa-512x512.png',
+                        src: './pwa-512x512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'maskable'
