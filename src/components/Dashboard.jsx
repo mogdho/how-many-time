@@ -10,6 +10,7 @@ import WeeklyChart from './WeeklyChart';
 
 const Dashboard = ({
     canInstall,
+    installHelp,
     isInstalled,
     isOfflineReady,
     isOnline,
@@ -222,7 +223,7 @@ const Dashboard = ({
                                                 } else if (isInstalled) {
                                                     window.alert('The app is already installed on this device.');
                                                 } else {
-                                                    window.alert('Install is not available in this browser yet.');
+                                                    window.alert(installHelp?.message || 'Install is not available in this browser yet.');
                                                 }
 
                                                 setMenuOpen(false);
@@ -247,26 +248,49 @@ const Dashboard = ({
             <main className="dashboard-main">
                 <section className="hero-panel">
                     <div className="hero-panel__intro">
-                        <div className="hero-panel__pill">
-                            <Crown size={14} />
-                            <span>Members-only feeling, zero cloud dependency</span>
+                        <div className="hero-panel__intro-card">
+                            <div className="hero-panel__pill">
+                                <Crown size={14} />
+                                <span>Members-only feeling, zero cloud dependency</span>
+                            </div>
+
+                            <p className="hero-panel__kicker">
+                                {user?.username || 'Private user'}
+                            </p>
+
+                            <h2 className="hero-panel__title">
+                                {user?.guiltyPleasure || 'Private Log'}
+                                <span> tracked with brutal honesty and polished restraint.</span>
+                            </h2>
+
+                            <p className="hero-panel__text">
+                                A local-first ritual dashboard with a premium surface, instant logging, and no analytics watching over your shoulder.
+                            </p>
+
+                            <div className="hero-glance-grid">
+                                <article className="hero-glance-card">
+                                    <span className="hero-glance-card__label">Monthly pulse</span>
+                                    <strong className="hero-glance-card__value">{currentMonthCount}</strong>
+                                    <span className="hero-glance-card__hint">
+                                        {isOverLimit ? 'Pressure is elevated' : 'Quietly in control'}
+                                    </span>
+                                </article>
+
+                                <article className="hero-glance-card hero-glance-card--accent">
+                                    <span className="hero-glance-card__label">Remaining runway</span>
+                                    <strong className="hero-glance-card__value">
+                                        {monthlyLimit ? remainingThisMonth : 'Open'}
+                                    </strong>
+                                    <span className="hero-glance-card__hint">
+                                        {monthlyLimit ? 'entries left this month' : 'no cap configured'}
+                                    </span>
+                                </article>
+                            </div>
                         </div>
-
-                        <p className="hero-panel__kicker">
-                            {user?.username || 'Private user'}
-                        </p>
-
-                        <h2 className="hero-panel__title">
-                            {user?.guiltyPleasure || 'Private Log'}
-                            <span> tracked with brutal honesty and polished restraint.</span>
-                        </h2>
-
-                        <p className="hero-panel__text">
-                            A local-first ritual dashboard with a premium surface, instant logging, and no analytics watching over your shoulder.
-                        </p>
 
                         <PwaControls
                             canInstall={canInstall}
+                            installHelp={installHelp}
                             isInstalled={isInstalled}
                             isOfflineReady={isOfflineReady}
                             isOnline={isOnline}
@@ -322,6 +346,14 @@ const Dashboard = ({
                             </p>
                         </div>
                     </div>
+                </section>
+
+                <section className="dashboard-marquee">
+                    <div className="dashboard-marquee__line" />
+                    <p className="dashboard-marquee__text">
+                        Private ritual dashboard. Cinematic surface. Zero sync. Device-only memory.
+                    </p>
+                    <div className="dashboard-marquee__line" />
                 </section>
 
                 <section className="dashboard-grid">

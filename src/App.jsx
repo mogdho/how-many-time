@@ -10,6 +10,44 @@ function isStandaloneMode() {
     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
+function getInstallHelp() {
+    const userAgent = window.navigator.userAgent;
+    const isIos = /iPad|iPhone|iPod/.test(userAgent);
+    const isAndroid = /Android/.test(userAgent);
+    const isSafari = /Safari/.test(userAgent) && !/Chrome|CriOS|Edg|OPR/.test(userAgent);
+    const isChromium = /Chrome|CriOS|Edg/.test(userAgent);
+
+    if (isIos && isSafari) {
+        return {
+            kind: 'manual',
+            title: 'Install from Safari',
+            message: 'Tap Share, then choose "Add to Home Screen" to install this app on iPhone or iPad.',
+        };
+    }
+
+    if (isAndroid && isChromium) {
+        return {
+            kind: 'eligible',
+            title: 'Install should appear here',
+            message: 'If the install button is missing, open the site over HTTPS or use the browser menu and choose Install app.',
+        };
+    }
+
+    if (isChromium) {
+        return {
+            kind: 'eligible',
+            title: 'Use the browser install menu',
+            message: 'Open the browser menu and choose "Install app" if the prompt is not showing automatically yet.',
+        };
+    }
+
+    return {
+        kind: 'unsupported',
+        title: 'Best in Chrome or Safari',
+        message: 'This browser may not expose the install prompt. For the best PWA install experience, open this app in Chrome, Edge, or Safari.',
+    };
+}
+
 function App() {
     const [appState, setAppState] = useState('LOADING');
     const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -17,6 +55,7 @@ function App() {
     const [isInstalled, setIsInstalled] = useState(() => isStandaloneMode());
     const [pwaState, setPwaState] = useState(() => getPwaState());
     const [showOfflineReady, setShowOfflineReady] = useState(false);
+    const [installHelp, setInstallHelp] = useState(() => getInstallHelp());
 
     useEffect(() => {
         const checkUser = async () => {
@@ -37,6 +76,7 @@ function App() {
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(display-mode: standalone)');
+        setInstallHelp(getInstallHelp());
 
         const handleBeforeInstallPrompt = (e) => {
             e.preventDefault();
@@ -123,6 +163,7 @@ function App() {
             {appState === 'DASHBOARD' && (
                 <Dashboard
                     canInstall={Boolean(deferredPrompt)}
+                    installHelp={installHelp}
                     isInstalled={isInstalled}
                     isOfflineReady={showOfflineReady}
                     isOnline={isOnline}

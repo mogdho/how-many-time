@@ -198,6 +198,26 @@
     padding: 1rem 0;
 }
 
+.hero-panel__intro-card {
+    position: relative;
+    padding: 1.35rem;
+    border-radius: 32px;
+    background:
+        radial-gradient(circle at top left, rgba(239, 188, 126, 0.12), transparent 26%),
+        linear-gradient(180deg, rgba(11, 19, 35, 0.76), rgba(7, 13, 27, 0.48));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+    overflow: hidden;
+}
+
+.hero-panel__intro-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 34%);
+    pointer-events: none;
+}
+
 .hero-panel__pill,
 .auth-copy__pill,
 .chart-shell__badge,
@@ -250,6 +270,51 @@
     color: var(--text-muted);
     font-size: 1.02rem;
     line-height: 1.8;
+}
+
+.hero-glance-grid {
+    position: relative;
+    z-index: 1;
+    margin-top: 1.4rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.hero-glance-card {
+    min-height: 8.8rem;
+    padding: 1rem;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-glance-card--accent {
+    background: linear-gradient(180deg, rgba(159, 185, 255, 0.14), rgba(255, 255, 255, 0.04));
+}
+
+.hero-glance-card__label {
+    color: rgba(236, 238, 245, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.hero-glance-card__value {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 2.8rem;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+}
+
+.hero-glance-card__hint {
+    color: rgba(236, 238, 245, 0.72);
+    font-size: 0.84rem;
+    line-height: 1.45;
 }
 
 .hero-panel__metrics {
@@ -492,6 +557,14 @@
     line-height: 1.7;
 }
 
+.pwa-panel__note {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: rgba(236, 238, 245, 0.68);
+    font-size: 0.88rem;
+    line-height: 1.7;
+}
+
 .pwa-panel__actions {
     display: flex;
     flex-wrap: wrap;
@@ -542,6 +615,29 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.2rem;
+}
+
+.dashboard-marquee {
+    margin-top: 1.5rem;
+    padding: 0.4rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.dashboard-marquee__line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+}
+
+.dashboard-marquee__text {
+    margin: 0;
+    color: rgba(236, 238, 245, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    font-size: 0.68rem;
+    white-space: nowrap;
 }
 
 .chart-shell {
@@ -974,6 +1070,15 @@
         justify-self: stretch;
         max-width: none;
     }
+
+    .hero-panel__intro {
+        padding: 0;
+    }
+
+    .hero-panel__title,
+    .auth-copy__title {
+        max-width: none;
+    }
 }
 
 @media (max-width: 720px) {
@@ -987,7 +1092,8 @@
     .chart-shell__header,
     .pwa-panel,
     .hero-metrics-grid,
-    .settings-form__actions {
+    .settings-form__actions,
+    .dashboard-marquee {
         display: flex;
         flex-direction: column;
     }
@@ -1010,10 +1116,37 @@
         padding-top: 1rem;
     }
 
+    .hero-panel__intro-card,
+    .hero-panel__metrics,
+    .chart-shell,
+    .auth-card,
+    .settings-modal {
+        border-radius: 26px;
+    }
+
+    .hero-panel__intro-card,
+    .hero-panel__metrics,
+    .chart-shell {
+        padding: 1rem;
+    }
+
     .hero-panel__title,
     .auth-copy__title {
         max-width: none;
         font-size: clamp(2.6rem, 13vw, 4.4rem);
+    }
+
+    .hero-glance-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-glance-card {
+        min-height: auto;
+        gap: 0.55rem;
+    }
+
+    .hero-glance-card__value {
+        font-size: 2.35rem;
     }
 
     .action-button-core {
@@ -1043,6 +1176,18 @@
     .chart-bar-card,
     .chart-empty-state {
         height: 16rem;
+    }
+
+    .dashboard-marquee {
+        gap: 0.55rem;
+        align-items: stretch;
+        margin-top: 1.15rem;
+    }
+
+    .dashboard-marquee__text {
+        white-space: normal;
+        text-align: center;
+        line-height: 1.6;
     }
 
     .undo-toast {

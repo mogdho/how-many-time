@@ -3,6 +3,7 @@ import { CheckCircle2, Download, RefreshCw, ShieldCheck, WifiOff } from 'lucide-
 
 const PwaControls = ({
     canInstall,
+    installHelp,
     isInstalled,
     isOfflineReady,
     isOnline,
@@ -15,7 +16,7 @@ const PwaControls = ({
         isOfflineReady ||
         isUpdateAvailable ||
         isInstalled ||
-        (!isInstalled && canInstall);
+        (!isInstalled && (canInstall || installHelp));
 
     if (!shouldRender) {
         return null;
@@ -53,6 +54,13 @@ const PwaControls = ({
                     </div>
                 )}
 
+                {!isInstalled && !canInstall && installHelp && (
+                    <div className={`pwa-chip ${installHelp.kind === 'unsupported' ? 'pwa-chip--warning' : ''}`}>
+                        <ShieldCheck size={16} />
+                        <span>{installHelp.title}</span>
+                    </div>
+                )}
+
                 {!isInstalled && canInstall && (
                     <button type="button" className="pwa-action" onClick={onInstall}>
                         <Download size={16} />
@@ -67,6 +75,10 @@ const PwaControls = ({
                     </button>
                 )}
             </div>
+
+            {!isInstalled && !canInstall && installHelp && (
+                <p className="pwa-panel__note">{installHelp.message}</p>
+            )}
         </section>
     );
 };
