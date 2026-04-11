@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { verifyPIN } from '../lib/security';
 import { getUser, saveUser, wipeData } from '../lib/db';
 
@@ -9,134 +10,163 @@ const AuthUnlock = ({ onUnlock }) => {
     const [storedHash, setStoredHash] = useState('');
     const [attempts, setAttempts] = useState(0);
     const [error, setError] = useState('');
+    const inputRef = useRef(null);
 
     useEffect(() => {
         const loadUser = async () => {
             const user = await getUser();
+
             if (user) {
                 setUsername(user.username);
                 setStoredHash(user.pinHash);
                 setAttempts(user.failedAttempts || 0);
             }
         };
+
         loadUser();
     }, []);
 
-    const handleUnlock = async (e) => {
-        e.preventDefault();
-        if (pin.length !== 4) return;
+    const handleUnlock = async (event) => {
+        event.preventDefault();
+
+        if (pin.length !== 4) {
+            return;
+        }
 
         const isValid = await verifyPIN(pin, storedHash);
+
         if (isValid) {
             const user = await getUser();
             await saveUser({ ...user, failedAttempts: 0 });
             onUnlock();
-        } else {
-            const newAttempts = attempts + 1;
-            setAttempts(newAttempts);
-            setPin('');
+            return;
+        }
 
-            const user = await getUser();
-            await saveUser({ ...user, failedAttempts: newAttempts });
+        const nextAttempts = attempts + 1;
+        setAttempts(nextAttempts);
+        setPin('');
 
-            if (newAttempts >= 10) {
-                await wipeData();
-                window.location.reload();
-            } else if (newAttempts >= 7) {
-                setError(`Warning: ${10 - newAttempts} attempts left before complete wipe.`);
-            } else {
-                setError('Incorrect PIN');
-            }
+        const user = await getUser();
+        await saveUser({ ...user, failedAttempts: nextAttempts });
+
+        if (nextAttempts >= 10) {
+            await wipeData();
+            window.location.reload();
+            return;
+        }
+
+        if (nextAttempts >= 7) {
+            setError(`Warning: ${10 - nextAttempts} attempts left before complete wipe.`);
+            return;
+        }
+
+        setError('Incorrect PIN');
+    };
+
+    const handleFocus = () => {
+        if (inputRef.current) {
+            inputRef.current.focus();
         }
     };
 
-    const inputRef = useRef(null);
-
-    const handleFocus = () => {
-        if (inputRef.current) inputRef.current.focus();
-    };
-
     return (
-        <motion.div
+        <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center min-h-screen p-6 text-center"
+            className="auth-shell"
             onClick={handleFocus}
         >
+            <div className="auth-shell__ambient" />
+
             <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="premium-card flex flex-col items-center"
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.65, ease: 'easeOut' }}
+                className="auth-stage auth-stage--narrow"
             >
-                <div className="mb-12">
-                    <p className="text-[#888888] uppercase tracking-[0.2em] mb-2">Private Access for</p>
-                    <h1 className="text-4xl font-semibold text-[#EAEAEA]">{username}</h1>
+                <div className="auth-copy auth-copy--centered">
+                    <div className="auth-copy__pill">
+                        <ShieldCheck size={14} />
+                        <span>Encrypted on this device</span>
+                    </div>
+
+                    <p className="auth-copy__eyebrow">Welcome back</p>
+                    <h1 className="auth-copy__title auth-copy__title--tight">{username || 'Private user'}</h1>
+                    <p className="auth-copy__text">
+                        Re-enter your vault and continue tracking without sending a byte anywhere else.
+                    </p>
                 </div>
 
-                <form onSubmit={handleUnlock} className="w-full">
+                <motion.form
+                    onSubmit={handleUnlock}
+                    className="auth-card auth-card--compact"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.12, duration: 0.4 }}
+                >
+                    <div className="auth-card__header">
+                        <p className="auth-card__eyebrow">Secure entry</p>
+                        <h2 className="auth-card__title">Unlock</h2>
+                    </div>
+
                     <motion.div
-                        className="relative flex justify-center gap-4 mb-12 cursor-text"
-                        animate={error ? { x: [-10, 10, -10, 10, 0] } : {}}
-                        transition={{ duration: 0.4 }}
+                        className="pin-grid"
+                        animate={error ? { x: [-8, 8, -6, 6, 0] } : {}}
+                        transition={{ duration: 0.35 }}
                         onClick={handleFocus}
                     >
-                        {/* Off-screen Input for PIN capture */}
                         <input
                             ref={inputRef}
                             type="tel"
                             maxLength={4}
                             value={pin}
-                            onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                                setPin(val);
+                            onChange={(event) => {
+                                const nextValue = event.target.value.replace(/\D/g, '').slice(0, 4);
+                                setPin(nextValue);
                             }}
                             autoComplete="off"
-                            className="absolute opacity-0 pointer-events-none"
-                            style={{ left: '-10000px', top: 'auto', width: '1px', height: '1px' }}
+                            className="auth-hidden-input"
                             autoFocus
                             required
                         />
 
-                        {/* Visual Slots */}
-                        {[0, 1, 2, 3].map((i) => (
+                        {[0, 1, 2, 3].map((slot) => (
                             <div
-                                key={i}
-                                className={`pin-slot ${pin.length === i ? 'pin-slot-active' : ''}`}
+                                key={slot}
+                                className={`pin-slot ${pin.length === slot ? 'pin-slot-active' : ''} ${pin.length > slot ? 'pin-slot-filled' : ''}`}
                             >
-                                {pin.length > i ? '•' : ''}
+                                {pin.length > slot ? '•' : ''}
                             </div>
                         ))}
                     </motion.div>
 
+                    <div className="auth-alert-row">
+                        <div className="auth-alert-chip">
+                            <LockKeyhole size={14} />
+                            <span>{10 - attempts} attempts before wipe</span>
+                        </div>
+                    </div>
+
                     <AnimatePresence>
                         {error && (
                             <motion.p
-                                initial={{ opacity: 0, y: -10 }}
+                                initial={{ opacity: 0, y: -8 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0 }}
-                                className={`text-sm mb-8 ${attempts >= 7 ? 'text-red-500 font-bold' : 'text-[#CF6679]'}`}
+                                className={`auth-error ${attempts >= 7 ? 'auth-error--strong' : ''}`}
                             >
+                                {attempts >= 7 && <AlertTriangle size={14} />}
                                 {error}
                             </motion.p>
                         )}
                     </AnimatePresence>
 
-                    <motion.button
-                        type="submit"
-                        whileHover={{
-                            scale: 1.02,
-                            backgroundColor: "rgba(255, 255, 255, 0.1)",
-                            boxShadow: "0 0 20px rgba(255, 255, 255, 0.05)"
-                        }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full glass py-4 rounded-xl font-bold text-whitesmoke text-lg transition-all duration-300"
-                    >
-                        UNLOCK
-                    </motion.button>
-                </form>
+                    <button type="submit" className="auth-primary-button">
+                        Unlock vault
+                    </button>
+                </motion.form>
             </motion.div>
-        </motion.div>
+        </motion.section>
     );
 };
 

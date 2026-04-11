@@ -82,7 +82,7 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
             for (let i = 4; i >= 0; i--) {
                 const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
                 const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-                const count = logs.filter(l => l.timestamp >= start.getTime() && l.timestamp < end.getTime()).length;
+                const count = logs.filter((l) => l.timestamp >= start.getTime() && l.timestamp < end.getTime()).length;
                 const label = start.toLocaleString('default', { month: 'short' });
                 months.push({ label, count });
             }
@@ -90,7 +90,7 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
             return {
                 isHistoricalCustom: true,
                 months,
-                hasData: months.some(m => m.count > 0)
+                hasData: months.some((m) => m.count > 0)
             };
         } else {
             // Current Week Mode: Breakdown by Weekdays (Sun-Sat) with Comparison
@@ -104,43 +104,42 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
                 start.setDate(startOfThisWeek.getDate() + i);
                 const end = new Date(start);
                 end.setDate(start.getDate() + 1);
-                const count = logs.filter(l => l.timestamp >= start.getTime() && l.timestamp < end.getTime()).length;
+                const count = logs.filter((l) => l.timestamp >= start.getTime() && l.timestamp < end.getTime()).length;
 
                 // Last week
                 const lastStart = new Date(startOfLastWeek);
                 lastStart.setDate(startOfLastWeek.getDate() + i);
-                const lastEnd = new Date(lastStart);
-                lastEnd.setDate(lastStart.getTime() + (24 * 60 * 60 * 1000));
-                const lastCount = logs.filter(l => l.timestamp >= lastStart.getTime() && l.timestamp < lastEnd.getTime()).length;
+                const lastEnd = new Date(lastStart.getTime() + (24 * 60 * 60 * 1000));
+                const lastCount = logs.filter((l) => l.timestamp >= lastStart.getTime() && l.timestamp < lastEnd.getTime()).length;
 
                 return { label, count, lastCount };
             });
 
             return {
-                labels: comparisonData.map(d => d.label),
+                labels: comparisonData.map((d) => d.label),
                 datasets: [
                     {
                         label: 'This Week',
-                        data: comparisonData.map(d => d.count),
-                        backgroundColor: 'rgba(94, 122, 196, 0.55)',
-                        borderColor: '#5e7ac4',
+                        data: comparisonData.map((d) => d.count),
+                        backgroundColor: 'rgba(239, 188, 126, 0.82)',
+                        borderColor: '#efbc7e',
                         borderWidth: 1,
-                        borderRadius: 8,
+                        borderRadius: 14,
                         barThickness: 34,
                         order: 2,
                     },
                     {
                         label: 'Last Week',
-                        data: comparisonData.map(d => d.lastCount),
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        borderColor: 'rgba(255, 255, 255, 1)',
+                        data: comparisonData.map((d) => d.lastCount),
+                        backgroundColor: 'rgba(129, 152, 226, 0.7)',
+                        borderColor: 'rgba(159, 185, 255, 0.95)',
                         borderWidth: 1,
-                        borderRadius: 4,
-                        barThickness: 8,
+                        borderRadius: 10,
+                        barThickness: 12,
                         order: 1,
                     }
                 ],
-                hasData: comparisonData.some(d => d.count > 0 || d.lastCount > 0)
+                hasData: comparisonData.some((d) => d.count > 0 || d.lastCount > 0)
             };
         }
     }, [logs, mode]);
@@ -152,12 +151,12 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
         plugins: {
             legend: { display: false },
             tooltip: {
-                backgroundColor: '#fff',
-                titleColor: '#333',
-                bodyColor: '#000',
-                borderColor: '#eee',
+                backgroundColor: 'rgba(8, 13, 26, 0.95)',
+                titleColor: '#f7f1e8',
+                bodyColor: '#d7ddea',
+                borderColor: 'rgba(255, 255, 255, 0.08)',
                 borderWidth: 1,
-                cornerRadius: 8,
+                cornerRadius: 14,
                 padding: 12,
                 callbacks: {
                     label: (context) => {
@@ -173,13 +172,13 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
         scales: {
             y: {
                 beginAtZero: true,
-                grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
-                ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 }, stepSize: 1 }
+                grid: { color: 'rgba(255, 255, 255, 0.06)', drawBorder: false },
+                ticks: { color: 'rgba(236, 238, 245, 0.58)', font: { size: 10 }, stepSize: 1 }
             },
             x: {
-                stacked: true, // This effectively centers both bars at the same point when not 'grouped'
+                stacked: true,
                 grid: { display: false },
-                ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 } }
+                ticks: { color: 'rgba(236, 238, 245, 0.72)', font: { size: 10, weight: 700 } }
             }
         },
         animation: {
@@ -190,19 +189,19 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
 
     if (!data.hasData) {
         return (
-            <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-[#EFBC7E]/30 rounded-2xl w-full">
-                <span className="text-white/60 text-[10px] uppercase tracking-widest text-center px-6">
+            <div className="chart-empty-state">
+                <span className="chart-empty-state__label">
                     {mode === 'historical' ? 'No historical activity' : 'No activity this week'}
                 </span>
             </div>
-        )
+        );
     }
 
     if (data.isHistoricalCustom) {
-        const limit = monthlyLimit || 30; // fallback
+        const limit = monthlyLimit || 30;
 
         return (
-            <div className="flex flex-row flex-wrap justify-center items-center gap-4 md:gap-8 w-full mt-4 bg-white/5 rounded-3xl p-6 md:p-8 border border-white/10 shadow-lg">
+            <div className="history-hearts">
                 {data.months.map((m, idx) => {
                     const isBroken = m.count > limit;
                     const heartColor = isBroken ? HEART_DARK : getHeartColor(m.count, limit);
@@ -213,9 +212,9 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.1, duration: 0.4 }}
-                            className="flex flex-col items-center group"
+                            className="history-hearts__item"
                         >
-                            <div className="relative flex items-center justify-center w-16 h-16 transition-transform group-hover:scale-110" style={{ filter: `drop-shadow(0 4px 12px ${heartColor}55)` }}>
+                            <div className="history-hearts__icon" style={{ filter: `drop-shadow(0 10px 18px ${heartColor}55)` }}>
                                 <motion.div
                                     initial={{ scale: 0.5 }}
                                     animate={{ scale: 1 }}
@@ -227,12 +226,12 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
                                     }
                                 </motion.div>
                                 {!isBroken && (
-                                    <span className="absolute flex items-center justify-center text-white font-black text-sm tracking-tighter" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                                    <span className="history-hearts__count" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
                                         {m.count}
                                     </span>
                                 )}
                             </div>
-                            <span className="mt-3 text-[11px] text-white/70 font-bold uppercase tracking-widest group-hover:text-white transition-colors">
+                            <span className="history-hearts__month">
                                 {m.label}
                             </span>
                         </motion.div>
@@ -243,8 +242,8 @@ const WeeklyChart = ({ logs, mode = 'historical', monthlyLimit }) => {
     }
 
     return (
-        <div className="relative w-full">
-            <div className="h-48 w-full bg-white/5 rounded-3xl p-6 border border-white/10 shadow-lg">
+        <div style={{ width: '100%' }}>
+            <div className="chart-bar-card">
                 <Bar data={data} options={options} />
             </div>
         </div>

@@ -3,34 +3,24 @@ import { motion } from 'framer-motion';
 
 const ActionButton = ({ onClick, isGuilty }) => {
     return (
-        <div className="action-button-outer-ring">
-            <div className="action-button-inner-ring">
+        <div className={`action-button-frame ${isGuilty ? 'is-alert' : ''}`}>
+            <div className="action-button-frame__inner">
                 <motion.button
+                    type="button"
                     onClick={onClick}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.92, y: 4 }}
-                    className="w-56 h-56 rounded-full flex items-center justify-center text-white shadow-2xl relative overflow-hidden border-none"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.95 }}
                     animate={{
-                        backgroundColor: isGuilty ? "#ae2448" : "#ED9145",
                         boxShadow: isGuilty
-                            ? '0 0 50px rgba(174, 36, 72, 0.6), 0 25px 50px -12px rgba(174, 36, 72, 0.5)'
-                            : '0 0 50px rgba(239, 188, 126, 0.0), 0 25px 50px -12px rgba(237, 145, 69, 0.5)'
+                            ? '0 28px 70px rgba(216, 72, 93, 0.38), inset 0 1px 0 rgba(255,255,255,0.2)'
+                            : '0 28px 70px rgba(237, 145, 69, 0.30), inset 0 1px 0 rgba(255,255,255,0.24)',
                     }}
-                    transition={{
-                        backgroundColor: { duration: 0.4, ease: "easeOut" }
-                    }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    className={`action-button-core ${isGuilty ? 'is-alert' : ''}`}
                 >
-                    <span 
-                        className="text-4xl md:text-6xl tracking-widest drop-shadow-md uppercase italic cursor-pointer relative z-20"
-                        style={{ 
-                            fontFamily: "'Montserrat', sans-serif",
-                            color: '#F3F4F6', 
-                            fontWeight: 900,
-                            WebkitTextStroke: '0.8px #F3F4F6',
-                        }}
-                    >
-                        GUILTY
-                    </span>
+                    <span className="action-button-core__glow" />
+                    <span className="action-button-core__label">Log It</span>
+                    <span className="action-button-core__subtext">private tap</span>
                 </motion.button>
             </div>
         </div>
