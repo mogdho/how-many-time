@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getUser } from './lib/db';
-import { applyPwaUpdate, getPwaState, subscribeToPwaState } from './lib/pwa';
+import { applyPwaUpdate, getPwaState, promptInstall, subscribeToPwaState } from './lib/pwa';
 import AuthSetup from './components/AuthSetup';
 import AuthUnlock from './components/AuthUnlock';
 import Dashboard from './components/Dashboard';
@@ -10,6 +10,7 @@ function isStandaloneMode() {
     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
+// Tells the user how to install when the browser doesn't give us an install prompt.
 function getInstallHelp() {
     const userAgent = window.navigator.userAgent;
     const isIos = /iPad|iPhone|iPod/.test(userAgent);
@@ -18,44 +19,23 @@ function getInstallHelp() {
     const isChromium = /Chrome|CriOS|Edg/.test(userAgent);
 
     if (isIos && isSafari) {
-        return {
-            kind: 'manual',
-            title: 'Install from Safari',
-            message: 'Tap Share, then choose "Add to Home Screen" to install this app on iPhone or iPad.',
-        };
+        return 'On iPhone/iPad: tap Share, then "Add to Home Screen".';
     }
-
     if (isAndroid && isChromium) {
-        return {
-            kind: 'eligible',
-            title: 'Install should appear here',
-            message: 'If the install button is missing, open the site over HTTPS or use the browser menu and choose Install app.',
-        };
+        return 'Open the browser menu and choose "Install app" (site must be on HTTPS).';
     }
-
     if (isChromium) {
-        return {
-            kind: 'eligible',
-            title: 'Use the browser install menu',
-            message: 'Open the browser menu and choose "Install app" if the prompt is not showing automatically yet.',
-        };
+        return 'Open the browser menu and choose "Install app".';
     }
-
-    return {
-        kind: 'unsupported',
-        title: 'Best in Chrome or Safari',
-        message: 'This browser may not expose the install prompt. For the best PWA install experience, open this app in Chrome, Edge, or Safari.',
-    };
+    return 'This browser may not support installing. Try Chrome, Edge, or Safari.';
 }
 
 function App() {
     const [appState, setAppState] = useState('LOADING');
-    const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [isOnline, setIsOnline] = useState(() => window.navigator.onLine);
     const [isInstalled, setIsInstalled] = useState(() => isStandaloneMode());
     const [pwaState, setPwaState] = useState(() => getPwaState());
     const [showOfflineReady, setShowOfflineReady] = useState(false);
-    const [installHelp, setInstallHelp] = useState(() => getInstallHelp());
 
     useEffect(() => {
         const checkUser = async () => {
@@ -76,30 +56,15 @@ function App() {
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(display-mode: standalone)');
-        setInstallHelp(getInstallHelp());
 
-        const handleBeforeInstallPrompt = (e) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-
-        const handleInstallStateChange = () => {
-            setIsInstalled(isStandaloneMode());
-        };
-
-        const handleAppInstalled = () => {
-            setDeferredPrompt(null);
-            handleInstallStateChange();
-        };
-
+        const handleInstallStateChange = () => setIsInstalled(isStandaloneMode());
+        const handleAppInstalled = () => setIsInstalled(true);
         const handleOnline = () => setIsOnline(true);
         const handleOffline = () => setIsOnline(false);
 
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.addEventListener('appinstalled', handleAppInstalled);
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
-
         if (mediaQuery.addEventListener) {
             mediaQuery.addEventListener('change', handleInstallStateChange);
         } else {
@@ -107,11 +72,9 @@ function App() {
         }
 
         return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
             window.removeEventListener('appinstalled', handleAppInstalled);
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
-
             if (mediaQuery.removeEventListener) {
                 mediaQuery.removeEventListener('change', handleInstallStateChange);
             } else {
@@ -122,54 +85,30 @@ function App() {
 
     useEffect(() => subscribeToPwaState(setPwaState), []);
 
+    // Show the "ready to work offline" notice for a few seconds.
     useEffect(() => {
-        if (!pwaState.isOfflineReady) {
-            return undefined;
-        }
-
+        if (!pwaState.isOfflineReady) return undefined;
         setShowOfflineReady(true);
-
-        const timer = window.setTimeout(() => {
-            setShowOfflineReady(false);
-        }, 5000);
-
+        const timer = window.setTimeout(() => setShowOfflineReady(false), 5000);
         return () => window.clearTimeout(timer);
     }, [pwaState.isOfflineReady]);
 
-    const handleInstallClick = async () => {
-        if (!deferredPrompt) {
-            return false;
-        }
-
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        setDeferredPrompt(null);
-
-        return outcome === 'accepted';
-    };
-
-    const handleUpdateClick = async () => {
-        await applyPwaUpdate();
-    };
-
-    if (appState === 'LOADING') {
-        return <div className="app-loading-shell" />;
-    }
+    if (appState === 'LOADING') return <div className="animated-bg min-h-screen" />;
 
     return (
-        <div className="app-shell">
+        <div className="animated-bg bg-diagonal-stripes min-h-screen text-text">
             {appState === 'SETUP' && <AuthSetup onComplete={() => setAppState('DASHBOARD')} />}
             {appState === 'UNLOCK' && <AuthUnlock onUnlock={() => setAppState('DASHBOARD')} />}
             {appState === 'DASHBOARD' && (
                 <Dashboard
-                    canInstall={Boolean(deferredPrompt)}
-                    installHelp={installHelp}
+                    canInstall={pwaState.canInstall}
+                    installHelp={getInstallHelp()}
                     isInstalled={isInstalled}
                     isOfflineReady={showOfflineReady}
                     isOnline={isOnline}
                     isUpdateAvailable={pwaState.isUpdateAvailable}
-                    onInstallClick={handleInstallClick}
-                    onUpdateClick={handleUpdateClick}
+                    onInstallClick={promptInstall}
+                    onUpdateClick={applyPwaUpdate}
                 />
             )}
         </div>

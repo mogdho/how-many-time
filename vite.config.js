@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
@@ -7,10 +8,10 @@ export default defineConfig({
   base: './', 
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Vite 8/Rolldown এরর এড়াতে injectRegister 'script' ব্যবহার করুন
-      injectRegister: 'script', 
+      injectRegister: false, // SW is registered in src/lib/pwa.js
       workbox: {
         // এই অংশটি সাদা স্ক্রিন ফিক্স করতে সাহায্য করবে
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
@@ -21,8 +22,8 @@ export default defineConfig({
         name: 'How many times I have done it',
         short_name: 'HMT',
         description: 'Track your guilty pleasures. Private, local-only, no tracking.',
-        theme_color: '#c1272d',
-        background_color: '#c1272d',
+        theme_color: '#1a1a3e',
+        background_color: '#1a1a3e',
         display: 'standalone',
         orientation: 'portrait',
         start_url: './',

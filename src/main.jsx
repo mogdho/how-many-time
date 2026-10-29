@@ -3,11 +3,14 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 import { registerPwa } from './lib/pwa';
+import { DialogProvider } from './components/DialogProvider';
 
 registerPwa();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        <App />
+        <DialogProvider>
+            <App />
+        </DialogProvider>
     </React.StrictMode>
 );

@@ -1,49 +1,50 @@
+@import "tailwindcss";
+
+/*
+  Design tokens — the single source of color for the whole app.
+  Tailwind turns each --color-* into classes, e.g. bg-peach, text-brand, border-crimson.
+*/
+@theme {
+  --color-ink: #0d1f3c;        /* darkest navy */
+  --color-navy: #1a1a3e;       /* base background */
+  --color-royal: #3852AF;      /* bright blue in the background gradient */
+  --color-surface: rgba(13, 16, 38, 0.92); /* menus, modals, cards */
+  --color-brand: #ED9145;      /* main action (GUILTY, primary buttons) */
+  --color-peach: #EFBC7E;      /* highlights, focus, secondary actions */
+  --color-crimson: #ae2448;    /* guilty state, errors, danger */
+  --color-text: #F3F4F6;
+  --color-muted: rgba(243, 244, 246, 0.6);
+  --color-line: rgba(255, 255, 255, 0.12);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Montserrat', 'Inter', sans-serif;
+}
+
 :root {
-  --bg-color: #07111f;
-  --surface-color: rgba(10, 19, 36, 0.72);
-  --surface-strong: rgba(8, 15, 29, 0.9);
-  --surface-soft: rgba(255, 255, 255, 0.05);
-  --text-main: #f6f1e8;
-  --text-muted: rgba(220, 224, 235, 0.66);
-  --accent-color: #efbc7e;
-  --accent-strong: #ed9145;
-  --accent-cool: #9fb9ff;
-  --error-color: #ff8d93;
-  --success-color: #7fd7ad;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.38);
+  /* Same tokens for plain CSS and inline styles */
+  --ink: #0d1f3c;
+  --navy: #1a1a3e;
+  --royal: #3852AF;
+  --surface: rgba(13, 16, 38, 0.92);
+  --brand: #ED9145;
+  --peach: #EFBC7E;
+  --crimson: #ae2448;
+  --text: #F3F4F6;
+  --muted: rgba(243, 244, 246, 0.6);
+  --line: rgba(255, 255, 255, 0.12);
 }
 
-html {
-  min-height: 100%;
-  background:
-    radial-gradient(circle at top left, rgba(239, 188, 126, 0.16), transparent 28%),
-    radial-gradient(circle at 85% 15%, rgba(159, 185, 255, 0.18), transparent 24%),
-    linear-gradient(160deg, #07111f 0%, #081426 36%, #0c1930 100%);
-}
-
+html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
-  color: var(--text-main);
-  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  min-height: 100%;
+  background-color: var(--navy);
+  color: var(--text);
+  font-family: var(--font-sans);
   overflow-x: hidden;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: radial-gradient(circle at center, black, transparent 82%);
-  opacity: 0.3;
 }
 
 #root {
@@ -51,28 +52,22 @@ body::before {
   width: 100%;
 }
 
-* {
-  box-sizing: border-box;
+input {
+  user-select: text;
 }
 
-button,
-input,
-textarea {
-  font: inherit;
+/* Visible keyboard focus everywhere, in the app's accent color */
+:focus-visible {
+  outline: 2px solid var(--peach);
+  outline-offset: 2px;
 }
 
-button {
-  cursor: pointer;
-}
-
-img {
-  display: block;
-  max-width: 100%;
-}
-
-.glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

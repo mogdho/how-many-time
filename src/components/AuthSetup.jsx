@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LockKeyhole, Sparkles } from 'lucide-react';
 import { hashPIN as hashPINUtil } from '../lib/security';
 import { saveUser as saveUserDB } from '../lib/db';
 
@@ -12,154 +11,115 @@ const AuthSetup = ({ onComplete }) => {
     const [confirmPin, setConfirmPin] = useState('');
     const [error, setError] = useState('');
 
-    const handleSetup = async (event) => {
-        event.preventDefault();
-
+    const handleSetup = async (e) => {
+        e.preventDefault();
         if (pin.length !== 4) {
             setError('PIN must be 4 digits');
             return;
         }
-
         if (pin !== confirmPin) {
             setError('PINs do not match');
             return;
         }
 
         const pinHash = await hashPINUtil(pin);
-
         await saveUserDB({
             username,
             pinHash,
             failedAttempts: 0,
             guiltyPleasure: guiltyPleasure || 'Guilty Pleasure',
             monthlyLimit: monthlyLimit ? parseInt(monthlyLimit, 10) : null,
+            createdAt: Date.now()
         });
-
         onComplete();
     };
 
     return (
-        <motion.section
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="auth-shell"
+        <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="flex flex-col items-center justify-center min-h-screen px-4 py-10 text-center"
         >
-            <div className="auth-shell__ambient" />
+            <h1 className="font-display italic uppercase text-4xl tracking-wider text-text mb-2">Welcome</h1>
+            <p className="text-muted text-sm mb-8">Set up your private log. Everything stays on this device.</p>
 
-            <motion.div
-                initial={{ opacity: 0, y: 28 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, ease: 'easeOut' }}
-                className="auth-stage"
-            >
-                <div className="auth-copy">
-                    <div className="auth-copy__pill">
-                        <Sparkles size={14} />
-                        <span>Premium local-first ritual</span>
-                    </div>
-
-                    <p className="auth-copy__eyebrow">Create your vault</p>
-                    <h1 className="auth-copy__title">
-                        A deeply private tracker with a more cinematic surface.
-                    </h1>
-                    <p className="auth-copy__text">
-                        Everything lives on this device. No accounts, no cloud sync, no audience.
-                    </p>
-
-                    <div className="auth-copy__features">
-                        <div className="auth-feature">
-                            <LockKeyhole size={18} />
-                            <span>PIN-locked access</span>
-                        </div>
-                        <div className="auth-feature">
-                            <Sparkles size={18} />
-                            <span>Offline-ready PWA</span>
-                        </div>
-                    </div>
+            <form onSubmit={handleSetup} className="glass p-7 rounded-3xl w-full max-w-sm flex flex-col gap-6">
+                <div>
+                    <label className="field-label" htmlFor="setup-username">Your name</label>
+                    <input
+                        id="setup-username"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="auth-input text-lg"
+                        required
+                        autoFocus
+                    />
                 </div>
-
-                <motion.form
-                    onSubmit={handleSetup}
-                    className="auth-card"
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1, duration: 0.45 }}
-                >
-                    <div className="auth-card__header">
-                        <p className="auth-card__eyebrow">New profile</p>
-                        <h2 className="auth-card__title">Set the rules</h2>
-                    </div>
-
+                <div>
+                    <label className="field-label" htmlFor="setup-pleasure">Guilty pleasure</label>
+                    <input
+                        id="setup-pleasure"
+                        type="text"
+                        value={guiltyPleasure}
+                        onChange={(e) => setGuiltyPleasure(e.target.value)}
+                        className="auth-input text-lg"
+                        placeholder="e.g. smoking, drinking"
+                    />
+                </div>
+                <div>
+                    <label className="field-label" htmlFor="setup-limit">Monthly limit</label>
+                    <input
+                        id="setup-limit"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={monthlyLimit}
+                        onChange={(e) => setMonthlyLimit(e.target.value)}
+                        className="auth-input text-lg"
+                        placeholder="e.g. 10"
+                        required
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="auth-label">Username</label>
+                        <label className="field-label" htmlFor="setup-pin">4-digit PIN</label>
                         <input
-                            type="text"
-                            value={username}
-                            onChange={(event) => setUsername(event.target.value)}
-                            className="auth-input"
-                            required
-                            autoFocus
-                        />
-                    </div>
-
-                    <div>
-                        <label className="auth-label">What are you tracking?</label>
-                        <input
-                            type="text"
-                            value={guiltyPleasure}
-                            onChange={(event) => setGuiltyPleasure(event.target.value)}
-                            className="auth-input"
-                            placeholder="Smoking, drinking, sugar, scrolling"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="auth-label">Monthly limit</label>
-                        <input
-                            type="number"
-                            min="1"
-                            value={monthlyLimit}
-                            onChange={(event) => setMonthlyLimit(event.target.value)}
-                            className="auth-input"
-                            placeholder="10"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="auth-label">4-digit PIN</label>
-                        <input
+                            id="setup-pin"
                             type="password"
+                            inputMode="numeric"
                             maxLength={4}
                             pattern="\d{4}"
                             value={pin}
-                            onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                            className="auth-input auth-input--pin"
+                            onChange={(e) => setPin(e.target.value)}
+                            className="auth-input text-center text-2xl tracking-[0.6em]"
                             required
                         />
                     </div>
-
                     <div>
-                        <label className="auth-label">Confirm PIN</label>
+                        <label className="field-label" htmlFor="setup-confirm">Confirm PIN</label>
                         <input
+                            id="setup-confirm"
                             type="password"
+                            inputMode="numeric"
                             maxLength={4}
                             pattern="\d{4}"
                             value={confirmPin}
-                            onChange={(event) => setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                            className="auth-input auth-input--pin"
+                            onChange={(e) => setConfirmPin(e.target.value)}
+                            className="auth-input text-center text-2xl tracking-[0.6em]"
                             required
                         />
                     </div>
+                </div>
 
-                    {error && <p className="auth-error">{error}</p>}
+                {error && <p className="form-error" role="alert">{error}</p>}
 
-                    <button type="submit" className="auth-primary-button">
-                        Enter the private ledger
-                    </button>
-                </motion.form>
-            </motion.div>
-        </motion.section>
+                <button type="submit" className="btn btn-primary w-full mt-2">
+                    Start logging
+                </button>
+            </form>
+        </motion.div>
     );
 };
 

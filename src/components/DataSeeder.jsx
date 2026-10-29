@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { saveUser, saveLog, wipeData } from '../lib/db';
 import { hashPIN } from '../lib/security';
+import { useDialog } from './DialogProvider';
 
 const DataSeeder = () => {
     const [seeding, setSeeding] = useState(false);
+    const dialog = useDialog();
 
     const handleSeed = async () => {
-        if (!confirm("This will wipe all current data and seed test data. Proceed?")) return;
+        const ok = await dialog.confirm({
+            title: 'Seed test data?',
+            message: 'This wipes all current data and fills the app with 3 weeks of test entries (PIN 1234).',
+            confirmText: 'Seed',
+            danger: true,
+        });
+        if (!ok) return;
 
         setSeeding(true);
         try {
@@ -41,11 +49,11 @@ const DataSeeder = () => {
                 }
             }
 
-            alert("Seeding complete! App will reload.");
+            await dialog.alert({ title: 'Seeding complete', message: 'The app will reload now.' });
             window.location.reload();
         } catch (error) {
             console.error("Seeding failed", error);
-            alert("Seeding failed. Check console.");
+            await dialog.alert({ title: 'Seeding failed', message: 'Check the browser console for details.', danger: true });
         } finally {
             setSeeding(false);
         }
@@ -56,7 +64,7 @@ const DataSeeder = () => {
             <button
                 onClick={handleSeed}
                 disabled={seeding}
-                className="bg-red-600/20 hover:bg-red-600/40 text-red-500 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border border-red-500/30 backdrop-blur-xl transition-all"
+                className="btn btn-ghost !text-[10px] !py-2 !px-4 hover:!border-crimson hover:!bg-crimson/20"
             >
                 {seeding ? 'SEEDING...' : 'SEED TEST DATA (1234)'}
             </button>

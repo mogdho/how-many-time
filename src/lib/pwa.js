@@ -3,11 +3,45 @@ import { registerSW } from 'virtual:pwa-register';
 const pwaState = {
     isOfflineReady: false,
     isUpdateAvailable: false,
+    canInstall: false,
 };
 
 const listeners = new Set();
 
 let updateServiceWorker;
+let installPromptEvent = null;
+
+// Catch the browser's install event as early as possible (before React renders),
+// otherwise a fast page load can fire it before anyone is listening.
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        installPromptEvent = e;
+        pwaState.canInstall = true;
+        emitPwaState();
+    });
+    window.addEventListener('appinstalled', () => {
+        installPromptEvent = null;
+        pwaState.canInstall = false;
+        emitPwaState();
+    });
+}
+
+// Shows the native install dialog. Returns true if the user accepted.
+export async function promptInstall() {
+    if (!installPromptEvent) {
+        return false;
+    }
+    const event = installPromptEvent;
+    // The browser only allows prompt() once per event
+    installPromptEvent = null;
+    pwaState.canInstall = false;
+    emitPwaState();
+
+    event.prompt();
+    const { outcome } = await event.userChoice;
+    return outcome === 'accepted';
+}
 
 function emitPwaState() {
     const nextState = { ...pwaState };

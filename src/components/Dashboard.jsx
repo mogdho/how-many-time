@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Download, RefreshCw, Settings2, Shield, Sparkles, Trash2 } from 'lucide-react';
 import { saveLog, getLogs, deleteLastLog, getUser, saveUser, wipeData } from '../lib/db';
 import { hashPIN } from '../lib/security';
-import ActionButton from './ActionButton';
 import HeroCount from './HeroCount';
-import PwaControls from './PwaControls';
+import ActionButton from './ActionButton';
 import WeeklyChart from './WeeklyChart';
+import { Trash2, WifiOff, ShieldCheck, Menu } from 'lucide-react';
+import MenuSheet from './MenuSheet';
+import { useDialog } from './DialogProvider';
 
 const Dashboard = ({
     canInstall,
@@ -18,6 +19,7 @@ const Dashboard = ({
     onInstallClick,
     onUpdateClick,
 }) => {
+    const dialog = useDialog();
     const [logs, setLogs] = useState([]);
     const [user, setUser] = useState(null);
     const [showUndo, setShowUndo] = useState(false);
@@ -25,6 +27,7 @@ const Dashboard = ({
     const [menuOpen, setMenuOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
 
+    // Settings form state
     const [editUsername, setEditUsername] = useState('');
     const [editGuiltyPleasure, setEditGuiltyPleasure] = useState('');
     const [editMonthlyLimit, setEditMonthlyLimit] = useState('');
@@ -36,25 +39,27 @@ const Dashboard = ({
     useEffect(() => {
         const loadData = async () => {
             const fetchedUser = await getUser();
-            if (fetchedUser) {
-                setUser(fetchedUser);
-            }
-
+            if (fetchedUser) setUser(fetchedUser);
             const allLogs = await getLogs();
             setLogs(allLogs);
         };
-
         loadData();
     }, []);
 
     const handleAddLog = async () => {
+        // Vibrate must be called synchronously within a user interaction
         if ('vibrate' in navigator) {
-            navigator.vibrate(180);
+            const result = navigator.vibrate(200);
+            console.log('[HMT] navigator.vibrate(200) called, result:', result);
+        } else {
+            console.log('[HMT] navigator.vibrate not supported on this device/browser');
         }
-
-        await saveLog(Date.now());
+        
+        const newLogId = await saveLog(Date.now());
         const allLogs = await getLogs();
         setLogs(allLogs);
+
+        // Undo logic
         setShowUndo(true);
         setUndoTimer(10);
     };
@@ -68,16 +73,14 @@ const Dashboard = ({
 
     useEffect(() => {
         let interval;
-
         if (showUndo && undoTimer > 0) {
-            interval = window.setInterval(() => {
-                setUndoTimer((value) => value - 1);
+            interval = setInterval(() => {
+                setUndoTimer(t => t - 1);
             }, 1000);
         } else if (undoTimer === 0) {
             setShowUndo(false);
         }
-
-        return () => window.clearInterval(interval);
+        return () => clearInterval(interval);
     }, [showUndo, undoTimer]);
 
     const openSettings = () => {
@@ -92,428 +95,270 @@ const Dashboard = ({
         setMenuOpen(false);
     };
 
-    const handleSaveSettings = async (event) => {
-        event.preventDefault();
+    const handleSaveSettings = async (e) => {
+        e.preventDefault();
         setSettingsError('');
         setSettingsSuccess('');
 
+        // Build updated user object
         const updatedUser = { ...user };
 
-        if (editUsername.trim()) {
-            updatedUser.username = editUsername.trim();
-        }
-
+        if (editUsername.trim()) updatedUser.username = editUsername.trim();
         updatedUser.guiltyPleasure = editGuiltyPleasure.trim() || 'Guilty Pleasure';
         updatedUser.monthlyLimit = editMonthlyLimit ? parseInt(editMonthlyLimit, 10) : user?.monthlyLimit;
 
+        // If PIN fields are filled, update the PIN
         if (editPin || editConfirmPin) {
             if (editPin.length !== 4) {
                 setSettingsError('PIN must be 4 digits');
                 return;
             }
-
             if (editPin !== editConfirmPin) {
                 setSettingsError('PINs do not match');
                 return;
             }
-
             updatedUser.pinHash = await hashPIN(editPin);
         }
 
         updatedUser.failedAttempts = 0;
         await saveUser(updatedUser);
         setUser(updatedUser);
-        setSettingsSuccess('Saved');
-        window.setTimeout(() => setShowSettings(false), 900);
+        setSettingsSuccess('Saved!');
+        setTimeout(() => setShowSettings(false), 800);
     };
 
-    useEffect(() => {
-        if (!menuOpen) {
-            return undefined;
-        }
+    const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-        const handleClick = () => setMenuOpen(false);
-        const timer = window.setTimeout(() => window.addEventListener('click', handleClick), 10);
-
-        return () => {
-            window.clearTimeout(timer);
-            window.removeEventListener('click', handleClick);
-        };
-    }, [menuOpen]);
-
-    const currentMonthCount = logs.filter((log) => {
-        const date = new Date(log.timestamp);
+    const currentMonthCount = logs.filter(l => {
+        const d = new Date(l.timestamp);
         const now = new Date();
-
-        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
 
-    const totalCount = logs.length;
-    const monthlyLimit = user?.monthlyLimit || 0;
-    const remainingThisMonth = monthlyLimit ? Math.max(monthlyLimit - currentMonthCount, 0) : null;
-    const usageRatio = monthlyLimit ? Math.min(currentMonthCount / monthlyLimit, 1) : 0;
-    const usageWidth = `${Math.max(usageRatio * 100, totalCount > 0 ? 8 : 0)}%`;
-    const isOverLimit = monthlyLimit ? currentMonthCount >= monthlyLimit : false;
-    const basePath = import.meta.env.BASE_URL || '/';
+    const isOverLimit = user?.monthlyLimit && currentMonthCount >= user.monthlyLimit;
 
     return (
-        <div className="dashboard-shell">
-            <div className="dashboard-noise" />
+        <div className="min-h-screen flex flex-col items-center">
+            <header className="header-sticky flex justify-center px-4 py-3 md:py-5">
+                <div className="max-w-6xl w-full flex justify-between items-center gap-3 md:px-12">
+                    {/* Spacer keeps the name tag centered */}
+                    <div className="w-11 shrink-0" />
 
-            <header className="dashboard-header">
-                <div className="dashboard-header__inner">
-                    <div className="dashboard-brand">
-                        <span className="dashboard-brand__mark">
-                            <Sparkles size={14} />
+                    <div className="profile-card px-4 py-2 md:px-6 md:py-3 min-w-0">
+                        <span className="font-extrabold tracking-tight text-xs md:text-base uppercase italic text-center leading-tight break-words pr-[0.15em]">
+                            {user?.username}'s {user?.guiltyPleasure ? `${user.guiltyPleasure} log` : 'log'}
                         </span>
-                        <div>
-                            <p className="dashboard-brand__eyebrow">Private Ledger</p>
-                            <h1 className="dashboard-brand__title">How Many Times</h1>
-                        </div>
                     </div>
 
-                    <div className="dashboard-header__actions">
-                        <div className="dashboard-status">
-                            <span className={`dashboard-status__dot ${isOnline ? 'is-online' : 'is-offline'}`} />
-                            {isOnline ? 'Online' : 'Offline'}
-                        </div>
-
-                        <div style={{ position: 'relative' }}>
-                            <button
-                                type="button"
-                                className="dashboard-menu-button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setMenuOpen((value) => !value);
-                                }}
-                            >
-                                <img src={`${basePath}menu.png`} alt="Menu" style={{ width: 22, height: 22 }} />
-                            </button>
-
-                            <AnimatePresence>
-                                {menuOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                                        transition={{ duration: 0.18 }}
-                                        className="dashboard-menu"
-                                        onClick={(event) => event.stopPropagation()}
-                                    >
-                                        {isUpdateAvailable && (
-                                            <button
-                                                type="button"
-                                                className="dashboard-menu__item"
-                                                onClick={() => {
-                                                    onUpdateClick();
-                                                    setMenuOpen(false);
-                                                }}
-                                            >
-                                                <RefreshCw size={16} />
-                                                Update App
-                                            </button>
-                                        )}
-
-                                        <button
-                                            type="button"
-                                            className="dashboard-menu__item"
-                                            onClick={() => {
-                                                if (canInstall) {
-                                                    onInstallClick();
-                                                } else if (isInstalled) {
-                                                    window.alert('The app is already installed on this device.');
-                                                } else {
-                                                    window.alert(installHelp?.message || 'Install is not available in this browser yet.');
-                                                }
-
-                                                setMenuOpen(false);
-                                            }}
-                                        >
-                                            {canInstall ? <Download size={16} /> : <img src={`${basePath}download.png`} alt="" style={{ width: 16, height: 16 }} />}
-                                            {isInstalled ? 'Installed' : 'Install App'}
-                                        </button>
-
-                                        <button type="button" className="dashboard-menu__item" onClick={openSettings}>
-                                            <Settings2 size={16} />
-                                            Change Credentials
-                                        </button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </div>
+                    {/* Menu button (opens the bottom sheet) */}
+                    <button
+                        onClick={() => setMenuOpen(true)}
+                        className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center bg-transparent hover:bg-white/10 active:bg-white/15 transition-colors"
+                        aria-label="Open menu"
+                        aria-haspopup="dialog"
+                        aria-expanded={menuOpen}
+                    >
+                        <Menu className="w-7 h-7 text-peach" strokeWidth={2.5} />
+                    </button>
                 </div>
             </header>
 
-            <main className="dashboard-main">
-                <section className="hero-panel">
-                    <div className="hero-panel__intro">
-                        <div className="hero-panel__intro-card">
-                            <div className="hero-panel__pill">
-                                <Crown size={14} />
-                                <span>Members-only feeling, zero cloud dependency</span>
-                            </div>
+            <main className="flex-grow flex flex-col items-center w-full px-4 md:px-6 text-center">
+                <div className="max-w-3xl w-full flex flex-col items-center flex-grow">
 
-                            <p className="hero-panel__kicker">
-                                {user?.username || 'Private user'}
-                            </p>
-
-                            <h2 className="hero-panel__title">
-                                {user?.guiltyPleasure || 'Private Log'}
-                                <span> tracked with brutal honesty and polished restraint.</span>
-                            </h2>
-
-                            <p className="hero-panel__text">
-                                A local-first ritual dashboard with a premium surface, instant logging, and no analytics watching over your shoulder.
-                            </p>
-
-                            <div className="hero-glance-grid">
-                                <article className="hero-glance-card">
-                                    <span className="hero-glance-card__label">Monthly pulse</span>
-                                    <strong className="hero-glance-card__value">{currentMonthCount}</strong>
-                                    <span className="hero-glance-card__hint">
-                                        {isOverLimit ? 'Pressure is elevated' : 'Quietly in control'}
-                                    </span>
-                                </article>
-
-                                <article className="hero-glance-card hero-glance-card--accent">
-                                    <span className="hero-glance-card__label">Remaining runway</span>
-                                    <strong className="hero-glance-card__value">
-                                        {monthlyLimit ? remainingThisMonth : 'Open'}
-                                    </strong>
-                                    <span className="hero-glance-card__hint">
-                                        {monthlyLimit ? 'entries left this month' : 'no cap configured'}
-                                    </span>
-                                </article>
-                            </div>
-                        </div>
-
-                        <PwaControls
-                            canInstall={canInstall}
-                            installHelp={installHelp}
-                            isInstalled={isInstalled}
-                            isOfflineReady={isOfflineReady}
-                            isOnline={isOnline}
-                            isUpdateAvailable={isUpdateAvailable}
-                            onInstall={onInstallClick}
-                            onUpdate={onUpdateClick}
-                        />
-                    </div>
-
-                    <div className="hero-panel__metrics glass-card">
-                        <div className="hero-panel__count">
-                            <HeroCount count={totalCount} />
-                        </div>
-
-                        <div className="hero-metrics-grid">
-                            <article className="metric-card">
-                                <span className="metric-card__label">This month</span>
-                                <strong className="metric-card__value">{currentMonthCount}</strong>
-                                <span className="metric-card__hint">
-                                    {isOverLimit ? 'Above your limit' : 'Within your limit'}
-                                </span>
-                            </article>
-
-                            <article className="metric-card">
-                                <span className="metric-card__label">Monthly cap</span>
-                                <strong className="metric-card__value">{monthlyLimit || 'Open'}</strong>
-                                <span className="metric-card__hint">
-                                    {monthlyLimit ? `${remainingThisMonth} left this month` : 'No limit set'}
-                                </span>
-                            </article>
-                        </div>
-
-                        {monthlyLimit > 0 && (
-                            <div className="usage-meter">
-                                <div className="usage-meter__copy">
-                                    <span>Monthly pressure</span>
-                                    <span>{currentMonthCount} / {monthlyLimit}</span>
-                                </div>
-
-                                <div className="usage-meter__track">
-                                    <div
-                                        className={`usage-meter__fill ${isOverLimit ? 'is-over' : ''}`}
-                                        style={{ width: usageWidth }}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="hero-panel__cta">
-                            <ActionButton onClick={handleAddLog} isGuilty={showUndo || isOverLimit} />
-                            <p className="hero-panel__cta-note">
-                                One tap. Instant write. Local only.
-                            </p>
+                    {/* Main button */}
+                    <div className="flex flex-col justify-center items-center w-full min-h-[42vh] py-6">
+                        <div className="scale-90 md:scale-100">
+                            <ActionButton onClick={handleAddLog} isGuilty={showUndo} />
                         </div>
                     </div>
-                </section>
 
-                <section className="dashboard-marquee">
-                    <div className="dashboard-marquee__line" />
-                    <p className="dashboard-marquee__text">
-                        Private ritual dashboard. Cinematic surface. Zero sync. Device-only memory.
-                    </p>
-                    <div className="dashboard-marquee__line" />
-                </section>
+                    {/* Charts */}
+                    <div className="flex flex-col w-full gap-10 md:gap-12">
+                        <section className="flex flex-col items-center gap-5">
+                            <h2 className="section-title">Monthly fault</h2>
+                            <WeeklyChart logs={logs} mode="historical" monthlyLimit={user?.monthlyLimit} trackingSince={user?.createdAt} />
+                        </section>
 
-                <section className="dashboard-grid">
-                    <article className="chart-shell">
-                        <div className="chart-shell__header">
-                            <div>
-                                <p className="chart-shell__eyebrow">Monthly archive</p>
-                                <h3 className="chart-shell__title">Pattern over time</h3>
-                            </div>
-                            <span className="chart-shell__badge">
-                                <Shield size={14} />
-                                Stored on-device
-                            </span>
-                        </div>
+                        <section className="flex flex-col items-center gap-5">
+                            <h2 className="section-title">Seven-day slip</h2>
+                            <WeeklyChart logs={logs} mode="current" trackingSince={user?.createdAt} />
+                        </section>
+                    </div>
 
-                        <WeeklyChart logs={logs} mode="historical" monthlyLimit={user?.monthlyLimit} />
-                    </article>
-
-                    <article className="chart-shell">
-                        <div className="chart-shell__header">
-                            <div>
-                                <p className="chart-shell__eyebrow">Seven-day rhythm</p>
-                                <h3 className="chart-shell__title">This week vs last week</h3>
-                            </div>
-                            <span className="chart-shell__badge">
-                                <Sparkles size={14} />
-                                Live from your taps
-                            </span>
-                        </div>
-
-                        <WeeklyChart logs={logs} mode="current" />
-                    </article>
-                </section>
-
-                <footer className="dashboard-footer">
-                    <p className="dashboard-footer__text">
-                        Private app. Local storage only. No tracking. No sync. No observers.
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={async () => {
-                            if (window.confirm('Wipe all data permanently?')) {
-                                await wipeData();
-                                window.location.reload();
-                            }
-                        }}
-                        className="dashboard-danger"
-                    >
-                        <Trash2 size={14} />
-                        Panic Wipe
-                    </button>
-                </footer>
+                    <footer className="pt-14 pb-28 flex flex-col items-center gap-5 mt-auto">
+                        <button
+                            onClick={async () => {
+                                const ok = await dialog.confirm({
+                                    title: 'Wipe everything?',
+                                    message: 'This permanently deletes all your logs, your name and your PIN from this device. It can’t be undone.',
+                                    confirmText: 'Wipe',
+                                    danger: true,
+                                });
+                                if (ok) {
+                                    await wipeData();
+                                    window.location.reload();
+                                }
+                            }}
+                            className="btn btn-ghost text-muted hover:text-white hover:!border-crimson hover:!bg-crimson/20 !text-xs !py-2.5 !px-4"
+                        >
+                            <Trash2 size={14} /> Panic wipe
+                        </button>
+                        <p className="text-white/40 text-[10px] md:text-[11px] uppercase tracking-[0.2em] font-bold">
+                            Private app · Local only · No tracking
+                        </p>
+                    </footer>
+                </div>
             </main>
 
+            {/* PWA status pill (offline / offline-ready) */}
             <AnimatePresence>
-                {showUndo && (
+                {(!isOnline || isOfflineReady) && (
                     <motion.div
-                        initial={{ opacity: 0, y: 36 }}
+                        initial={{ opacity: 0, y: -16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 36 }}
-                        className="undo-toast"
+                        exit={{ opacity: 0, y: -16 }}
+                        className={`panel fixed top-20 inset-x-0 mx-auto w-fit flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold tracking-wider whitespace-nowrap pointer-events-none z-[998] ${isOnline ? 'text-peach' : 'text-text'}`}
+                        role="status"
                     >
-                        <div>
-                            <p className="undo-toast__title">Entry captured</p>
-                            <p className="undo-toast__text">Undo available for {undoTimer}s</p>
-                        </div>
-
-                        <button type="button" className="undo-toast__button" onClick={handleUndo}>
-                            Undo
-                        </button>
+                        {isOnline ? <ShieldCheck size={14} /> : <WifiOff size={14} />}
+                        {isOnline ? 'READY TO WORK OFFLINE' : 'OFFLINE · LOGGING STILL WORKS'}
                     </motion.div>
                 )}
             </AnimatePresence>
 
+            {/* Undo Button */}
+            <AnimatePresence>
+                {showUndo && (
+                    <div className="fixed inset-x-0 bottom-6 flex justify-center z-[1000] pointer-events-none" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                        <motion.button
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 30 }}
+                            transition={{ duration: 0.25, ease: 'easeOut' }}
+                            onClick={handleUndo}
+                            className="btn btn-secondary pointer-events-auto !text-base !px-10 !py-4 !rounded-2xl"
+                        >
+                            Undo
+                            <span className="opacity-60 font-bold tabular-nums">{undoTimer}s</span>
+                        </motion.button>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <MenuSheet
+                open={menuOpen}
+                onClose={closeMenu}
+                user={user}
+                monthCount={currentMonthCount}
+                isUpdateAvailable={isUpdateAvailable}
+                onUpdate={onUpdateClick}
+                isInstalled={isInstalled}
+                canInstall={canInstall}
+                installHelp={installHelp}
+                onInstall={onInstallClick}
+                onOpenSettings={openSettings}
+                onLock={() => window.location.reload()}
+            />
+
+            {/* Settings Modal */}
             <AnimatePresence>
                 {showSettings && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="settings-backdrop"
+                        className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-md"
                         onClick={() => setShowSettings(false)}
                     >
                         <motion.div
-                            initial={{ opacity: 0, y: 20, scale: 0.96 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 20, scale: 0.96 }}
-                            className="settings-modal"
-                            onClick={(event) => event.stopPropagation()}
+                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="panel rounded-3xl p-7 w-full max-w-sm max-h-[90vh] overflow-y-auto"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="settings-title"
                         >
-                            <p className="settings-modal__eyebrow">Personal vault</p>
-                            <h2 className="settings-modal__title">Refine your private setup</h2>
+                            <h2 id="settings-title" className="font-display italic uppercase text-xl tracking-wider text-center mb-6">
+                                Change Credentials
+                            </h2>
 
-                            <form onSubmit={handleSaveSettings} className="settings-form">
+                            <form onSubmit={handleSaveSettings} className="flex flex-col gap-5">
                                 <div>
-                                    <label className="settings-form__label">Username</label>
+                                    <label className="field-label" htmlFor="edit-username">Your name</label>
                                     <input
+                                        id="edit-username"
                                         type="text"
                                         value={editUsername}
-                                        onChange={(event) => setEditUsername(event.target.value)}
-                                        className="auth-input"
+                                        onChange={(e) => setEditUsername(e.target.value)}
+                                        className="auth-input text-base"
                                         required
                                     />
                                 </div>
-
                                 <div>
-                                    <label className="settings-form__label">Guilty pleasure</label>
+                                    <label className="field-label" htmlFor="edit-pleasure">Guilty pleasure</label>
                                     <input
+                                        id="edit-pleasure"
                                         type="text"
                                         value={editGuiltyPleasure}
-                                        onChange={(event) => setEditGuiltyPleasure(event.target.value)}
-                                        className="auth-input"
+                                        onChange={(e) => setEditGuiltyPleasure(e.target.value)}
+                                        className="auth-input text-base"
                                     />
                                 </div>
-
                                 <div>
-                                    <label className="settings-form__label">Monthly limit</label>
+                                    <label className="field-label" htmlFor="edit-limit">Monthly limit</label>
                                     <input
+                                        id="edit-limit"
                                         type="number"
+                                        inputMode="numeric"
                                         min="1"
                                         value={editMonthlyLimit}
-                                        onChange={(event) => setEditMonthlyLimit(event.target.value)}
-                                        className="auth-input"
+                                        onChange={(e) => setEditMonthlyLimit(e.target.value)}
+                                        className="auth-input text-base"
                                         required
                                     />
                                 </div>
-
-                                <div>
-                                    <label className="settings-form__label">New PIN</label>
-                                    <input
-                                        type="password"
-                                        maxLength={4}
-                                        pattern="\d{4}"
-                                        value={editPin}
-                                        onChange={(event) => setEditPin(event.target.value)}
-                                        className="auth-input auth-input--pin"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="field-label" htmlFor="edit-pin">New PIN</label>
+                                        <input
+                                            id="edit-pin"
+                                            type="password"
+                                            inputMode="numeric"
+                                            maxLength={4}
+                                            pattern="\d{4}"
+                                            value={editPin}
+                                            onChange={(e) => setEditPin(e.target.value)}
+                                            className="auth-input text-center text-2xl tracking-[0.5em]"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="field-label" htmlFor="edit-confirm">Confirm</label>
+                                        <input
+                                            id="edit-confirm"
+                                            type="password"
+                                            inputMode="numeric"
+                                            maxLength={4}
+                                            pattern="\d{4}"
+                                            value={editConfirmPin}
+                                            onChange={(e) => setEditConfirmPin(e.target.value)}
+                                            className="auth-input text-center text-2xl tracking-[0.5em]"
+                                        />
+                                    </div>
                                 </div>
+                                <p className="text-muted text-xs -mt-2 text-left">Leave the PIN fields empty to keep your current PIN.</p>
 
-                                <div>
-                                    <label className="settings-form__label">Confirm PIN</label>
-                                    <input
-                                        type="password"
-                                        maxLength={4}
-                                        pattern="\d{4}"
-                                        value={editConfirmPin}
-                                        onChange={(event) => setEditConfirmPin(event.target.value)}
-                                        className="auth-input auth-input--pin"
-                                    />
-                                </div>
+                                {settingsError && <p className="form-error text-center" role="alert">{settingsError}</p>}
+                                {settingsSuccess && <p className="form-success text-center" role="status">{settingsSuccess}</p>}
 
-                                {settingsError && <p className="settings-form__error">{settingsError}</p>}
-                                {settingsSuccess && <p className="settings-form__success">{settingsSuccess}</p>}
-
-                                <div className="settings-form__actions">
-                                    <button type="button" className="settings-button settings-button--ghost" onClick={() => setShowSettings(false)}>
+                                <div className="flex gap-3 mt-2">
+                                    <button type="button" onClick={() => setShowSettings(false)} className="btn btn-ghost flex-1">
                                         Cancel
                                     </button>
-                                    <button type="submit" className="settings-button settings-button--primary">
+                                    <button type="submit" className="btn btn-primary flex-1">
                                         Save
                                     </button>
                                 </div>
