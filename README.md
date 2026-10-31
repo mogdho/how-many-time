@@ -10,6 +10,8 @@ Smoking, drinking, junk food, doom-scrolling: whatever it is, tap one button eac
 
 ### [▶ Open the app](https://mogdho.github.io/how-many-time/)
 
+How it works and how to install it: **[mogdhopaul.com/how-many-time](https://mogdhopaul.com/how-many-time/)**
+
 No sign-up · No servers · Works offline · Installs like a normal app
 
 </div>
