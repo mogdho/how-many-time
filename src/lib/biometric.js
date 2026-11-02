@@ -56,7 +56,8 @@ export const verifyBiometric = async (credentialId) => {
         const assertion = await navigator.credentials.get({
             publicKey: {
                 challenge: randomBytes(32),
-                allowCredentials: [{ type: 'public-key', id: fromBase64Url(credentialId) }],
+                // 'internal' = this phone only, so Chrome doesn't offer another device if the passkey was removed.
+                allowCredentials: [{ type: 'public-key', id: fromBase64Url(credentialId), transports: ['internal'] }],
                 userVerification: 'required',
                 timeout: 60000,
             },

@@ -3,8 +3,9 @@ import { Flame, HeartCrack } from 'lucide-react';
 import { getStreak, bannerMessage } from '../lib/streak';
 
 // Same day count as the evening reminder. Inside the app it can name the habit.
-const StreakBanner = ({ logs, user, now }) => {
-    if (!user) return null;
+// Waits for the logs to load so it never flashes a wrong count.
+const StreakBanner = ({ logs, loaded, user, now }) => {
+    if (!user || !loaded) return null;
     const streak = getStreak(logs, user.createdAt, now);
     const habit = user.guiltyPleasure || 'your habit';
     const Icon = streak.slippedToday ? HeartCrack : Flame;

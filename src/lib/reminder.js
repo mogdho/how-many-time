@@ -35,6 +35,12 @@ export const enableReminder = async ({ requestPermission, registration }) => {
     return 'enabled';
 };
 
+// What to tell the user after trying to turn the reminder on (shared by the card and the menu).
+export const reminderResultAlert = (result) =>
+    result === 'unsupported'
+        ? { title: 'Reminder not available', message: "This browser didn't allow the evening reminder. Try again from the menu after using the app for a few days." }
+        : null;
+
 export const disableReminder = async (registration) => {
     try {
         await registration?.periodicSync?.unregister(REMINDER_TAG);

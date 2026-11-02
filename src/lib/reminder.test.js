@@ -80,3 +80,10 @@ test('disableReminder unregisters and saves off', async () => {
     expect(removed).toEqual(['daily-reminder']);
     expect((await getPrefs()).reminderEnabled).toBe(false);
 });
+
+test('reminderResultAlert explains a refused registration, nothing otherwise', async () => {
+    const { reminderResultAlert } = await import('./reminder');
+    expect(reminderResultAlert('unsupported')).toMatchObject({ title: 'Reminder not available' });
+    expect(reminderResultAlert('enabled')).toBeNull();
+    expect(reminderResultAlert('denied')).toBeNull();
+});

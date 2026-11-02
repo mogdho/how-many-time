@@ -45,6 +45,8 @@ test('verify true on success, false on any error', async () => {
     expect(await verifyBiometric('AQID')).toBe(true);
     expect(Array.from(opts.publicKey.allowCredentials[0].id)).toEqual([1, 2, 3]);
     expect(opts.publicKey.userVerification).toBe('required');
+    // Only this phone's own authenticator, so Chrome doesn't offer 'use another device' when the passkey is gone.
+    expect(opts.publicKey.allowCredentials[0].transports).toEqual(['internal']);
     stubCredentials({ get: async () => { throw new DOMException('x', 'NotAllowedError'); } });
     expect(await verifyBiometric('AQID')).toBe(false);
 });

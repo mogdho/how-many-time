@@ -13,9 +13,9 @@ import { readPeriodSettings, countInCurrentPeriod } from '../lib/periods';
 import PromptCard, { InstallPrompt } from './InstallPrompt';
 import StreakBanner from './StreakBanner';
 import { BellRing } from 'lucide-react';
-import { isReminderSupported, shouldShowReminderCard, enableReminder, disableReminder } from '../lib/reminder';
+import { isReminderSupported, enableReminder, disableReminder, reminderResultAlert } from '../lib/reminder';
 import { getPrefs, updatePrefs } from '../lib/prefs';
-import { shouldShowInstallPrompt } from '../lib/install';
+import { pickPrompt } from '../lib/prompts';
 import { isBiometricAvailable, registerBiometric } from '../lib/biometric';
 
 const Dashboard = ({
@@ -31,6 +31,7 @@ const Dashboard = ({
 }) => {
     const dialog = useDialog();
     const [logs, setLogs] = useState([]);
+    const [logsLoaded, setLogsLoaded] = useState(false);
     const [user, setUser] = useState(null);
     const [showUndo, setShowUndo] = useState(false);
     const [undoTimer, setUndoTimer] = useState(0);
@@ -61,10 +62,10 @@ const Dashboard = ({
 
     useEffect(() => {
         const loadData = async () => {
-            const fetchedUser = await getUser();
+            const [fetchedUser, allLogs] = await Promise.all([getUser(), getLogs()]);
             if (fetchedUser) setUser(fetchedUser);
-            const allLogs = await getLogs();
             setLogs(allLogs);
+            setLogsLoaded(true);
         };
         loadData();
     }, []);
@@ -81,9 +82,9 @@ const Dashboard = ({
     // canInstall can turn true late (the browser's install event), so this re-checks when it changes.
     useEffect(() => {
         if (!promptsReady || activePrompt) return;
-        if (shouldShowInstallPrompt({ isInstalled, canInstall, iosSafari, prefs })) setActivePrompt('install');
-        else if (shouldShowReminderCard({ supported: reminderSupported, permission: notifyPermission, prefs })) setActivePrompt('reminder');
-    }, [promptsReady, activePrompt, isInstalled, canInstall, iosSafari, prefs, reminderSupported, notifyPermission]);
+        const next = pickPrompt({ isInstalled, canInstall, iosSafari, prefs, reminderSupported, permission: notifyPermission, showUndo });
+        if (next) setActivePrompt(next);
+    }, [promptsReady, activePrompt, isInstalled, canInstall, iosSafari, prefs, reminderSupported, notifyPermission, showUndo]);
 
     const requestNotifyPermission = async () => {
         const result = await Notification.requestPermission();
@@ -94,6 +95,8 @@ const Dashboard = ({
     const turnOnReminder = async () => {
         const result = await enableReminder({ requestPermission: requestNotifyPermission, registration: swRegistration });
         setPrefs(await getPrefs());
+        const alert = reminderResultAlert(result);
+        if (alert) await dialog.alert(alert);
         return result;
     };
 
@@ -103,10 +106,7 @@ const Dashboard = ({
             setPrefs(await getPrefs());
             return;
         }
-        const result = await turnOnReminder();
-        if (result === 'unsupported') {
-            await dialog.alert({ title: 'Reminder not available', message: "This browser didn't allow the evening reminder. Try again after using the app for a few days." });
-        }
+        await turnOnReminder();
     };
 
     const closePrompt = async (patch) => {
@@ -266,7 +266,7 @@ const Dashboard = ({
             <main className="flex-grow flex flex-col items-center w-full px-4 md:px-6 text-center">
                 <div className="max-w-3xl w-full flex flex-col items-center flex-grow">
                     <div className="pt-2">
-                        <StreakBanner logs={logs} user={user} now={now} />
+                        <StreakBanner logs={logs} loaded={logsLoaded} user={user} now={now} />
                     </div>
 
                     {/* Main button */}
