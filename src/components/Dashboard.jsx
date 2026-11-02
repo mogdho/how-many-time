@@ -13,6 +13,7 @@ import { readPeriodSettings, countInCurrentPeriod } from '../lib/periods';
 import { InstallPrompt } from './InstallPrompt';
 import { getPrefs, updatePrefs } from '../lib/prefs';
 import { shouldShowInstallPrompt } from '../lib/install';
+import { isBiometricAvailable, registerBiometric } from '../lib/biometric';
 
 const Dashboard = ({
     canInstall,
@@ -38,6 +39,7 @@ const Dashboard = ({
     const [prefs, setPrefs] = useState(null);
     const [promptsReady, setPromptsReady] = useState(false);
     const [activePrompt, setActivePrompt] = useState(null);
+    const [biometricAvailable, setBiometricAvailable] = useState(false);
 
     // Settings form state
     const [editUsername, setEditUsername] = useState('');
@@ -63,6 +65,7 @@ const Dashboard = ({
     // Load prefs, then wait a moment after unlock before showing any one-time prompt.
     useEffect(() => {
         getPrefs().then(setPrefs);
+        isBiometricAvailable().then(setBiometricAvailable);
         const timer = window.setTimeout(() => setPromptsReady(true), 1500);
         return () => window.clearTimeout(timer);
     }, []);
@@ -166,6 +169,8 @@ const Dashboard = ({
                 return;
             }
             updatedUser.pinHash = await hashPIN(editPin);
+            // A new PIN turns fingerprint unlock off; it can be set up again from the menu.
+            delete updatedUser.biometricCredentialId;
         }
 
         updatedUser.failedAttempts = 0;
@@ -173,6 +178,24 @@ const Dashboard = ({
         setUser(updatedUser);
         setSettingsSuccess('Saved!');
         setTimeout(() => setShowSettings(false), 800);
+    };
+
+    const toggleBiometric = async () => {
+        if (user?.biometricCredentialId) {
+            const updated = { ...user };
+            delete updated.biometricCredentialId;
+            await saveUser(updated);
+            setUser(updated);
+            return;
+        }
+        const credentialId = await registerBiometric(user?.username);
+        if (!credentialId) {
+            await dialog.alert({ title: 'Fingerprint not set up', message: 'Nothing was changed. You can try again from the menu.' });
+            return;
+        }
+        const updated = { ...user, biometricCredentialId: credentialId };
+        await saveUser(updated);
+        setUser(updated);
     };
 
     const closeMenu = useCallback(() => setMenuOpen(false), []);
@@ -322,6 +345,9 @@ const Dashboard = ({
                 onInstall={onInstallClick}
                 onOpenSettings={openSettings}
                 onLock={() => window.location.reload()}
+                biometricAvailable={biometricAvailable}
+                biometricOn={Boolean(user?.biometricCredentialId)}
+                onToggleBiometric={toggleBiometric}
             />
 
             {/* Settings Modal */}

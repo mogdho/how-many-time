@@ -39,6 +39,7 @@ No sign-up · No servers · Works offline · Installs like a normal app
 
 - **Everything is stored on your device only**, in your browser's own storage. Nothing is uploaded, there's no account, and there's no tracking or analytics.
 - **PIN lock:** the app asks for your PIN every time you open it. Use **Lock now** in the menu to lock it straight away.
+- **Fingerprint unlock (optional):** turn on **Unlock with fingerprint** in the menu to unlock with your phone's fingerprint or face unlock. The PIN always works too. Fingerprint unlock is a screen lock like the PIN; your logs are not encrypted.
 - **Wipe protection:** after 7 wrong PINs you get a warning, and on the **10th wrong attempt all data is erased**.
 - **Panic wipe:** one button at the bottom of the screen erases everything immediately (it asks you to confirm first).
 

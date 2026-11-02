@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { verifyPIN } from '../lib/security';
 import { getUser, saveUser, wipeData } from '../lib/db';
+import { verifyBiometric } from '../lib/biometric';
+import { Fingerprint } from 'lucide-react';
 
 const AuthUnlock = ({ onUnlock }) => {
     const [pin, setPin] = useState('');
@@ -9,6 +11,8 @@ const AuthUnlock = ({ onUnlock }) => {
     const [storedHash, setStoredHash] = useState('');
     const [attempts, setAttempts] = useState(0);
     const [error, setError] = useState('');
+    const [credentialId, setCredentialId] = useState(null);
+    const autoTried = useRef(false);
 
     useEffect(() => {
         const loadUser = async () => {
@@ -17,10 +21,29 @@ const AuthUnlock = ({ onUnlock }) => {
                 setUsername(user.username);
                 setStoredHash(user.pinHash);
                 setAttempts(user.failedAttempts || 0);
+                setCredentialId(user.biometricCredentialId || null);
             }
         };
         loadUser();
     }, []);
+
+    // Fingerprint failures are left to the phone and never count toward the PIN wipe.
+    const tryFingerprint = async () => {
+        if (!credentialId) return;
+        if (await verifyBiometric(credentialId)) {
+            const user = await getUser();
+            await saveUser({ ...user, failedAttempts: 0 });
+            onUnlock();
+        }
+    };
+
+    // Ask for the fingerprint as soon as the screen opens (once, even under StrictMode).
+    // Some browsers need a tap first; the "Use fingerprint" button covers that.
+    useEffect(() => {
+        if (!credentialId || autoTried.current) return;
+        autoTried.current = true;
+        tryFingerprint();
+    }, [credentialId]);
 
     const handleUnlock = async (e) => {
         e.preventDefault();
@@ -130,6 +153,16 @@ const AuthUnlock = ({ onUnlock }) => {
                     >
                         UNLOCK
                     </motion.button>
+
+                    {credentialId && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); tryFingerprint(); }}
+                            className="btn btn-ghost w-full mt-3"
+                        >
+                            <Fingerprint size={18} /> Use fingerprint
+                        </button>
+                    )}
                 </form>
             </motion.div>
         </motion.div>

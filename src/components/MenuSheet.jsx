@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Settings, RefreshCw, Lock, ChevronRight, ChevronDown, CheckCircle2, X } from 'lucide-react';
+import { Download, Settings, RefreshCw, Lock, Fingerprint, ChevronRight, ChevronDown, CheckCircle2, X } from 'lucide-react';
 
 // One tappable row: icon bubble, title, short description, trailing chevron
 const SheetRow = ({ icon: Icon, title, subtitle, onClick, trailing, tone = 'peach', expanded }) => (
@@ -34,6 +34,9 @@ const MenuSheet = ({
     onInstall,
     onOpenSettings,
     onLock,
+    biometricAvailable,
+    biometricOn,
+    onToggleBiometric,
 }) => {
     const [showInstallHelp, setShowInstallHelp] = useState(false);
 
@@ -156,6 +159,16 @@ const MenuSheet = ({
                                 subtitle="Name, habit, limit, week start, PIN"
                                 onClick={onOpenSettings}
                             />
+
+                            {biometricAvailable && (
+                                <SheetRow
+                                    icon={Fingerprint}
+                                    title="Unlock with fingerprint"
+                                    subtitle="Use your phone's fingerprint or face unlock"
+                                    onClick={onToggleBiometric}
+                                    trailing={<span className={`text-xs font-bold shrink-0 ${biometricOn ? 'text-peach' : 'text-muted'}`}>{biometricOn ? 'On' : 'Off'}</span>}
+                                />
+                            )}
 
                             <SheetRow
                                 icon={Lock}
