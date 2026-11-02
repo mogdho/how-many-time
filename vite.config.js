@@ -45,6 +45,9 @@ export default defineConfig({
       }
     })
   ],
+  test: {
+    env: { TZ: 'America/New_York' },
+  },
   build: {
     // Vite 8 এর নতুন এরর এড়াতে এই সেটিংসটি যোগ করুন
     commonjsOptions: {
