@@ -27,6 +27,8 @@ const Dashboard = ({
     const [showUndo, setShowUndo] = useState(false);
     const [undoTimer, setUndoTimer] = useState(0);
     const [menuOpen, setMenuOpen] = useState(false);
+    // Refreshed when the app comes back into view and once a minute, so a new week or month shows up without a reload.
+    const [now, setNow] = useState(() => Date.now());
     const [showSettings, setShowSettings] = useState(false);
 
     // Settings form state
@@ -48,6 +50,17 @@ const Dashboard = ({
             setLogs(allLogs);
         };
         loadData();
+    }, []);
+
+    useEffect(() => {
+        const refresh = () => setNow(Date.now());
+        const onVisible = () => document.visibilityState === 'visible' && refresh();
+        document.addEventListener('visibilitychange', onVisible);
+        const timer = window.setInterval(refresh, 60 * 1000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            window.clearInterval(timer);
+        };
     }, []);
 
     const handleAddLog = async () => {
@@ -140,7 +153,7 @@ const Dashboard = ({
 
     const { period, weekStartsOn } = readPeriodSettings(user);
     const isWeekly = period === 'week';
-    const currentPeriodCount = countInCurrentPeriod(logs, period, weekStartsOn);
+    const currentPeriodCount = countInCurrentPeriod(logs, period, weekStartsOn, now);
 
     return (
         <div className="min-h-screen flex flex-col items-center">
@@ -189,6 +202,7 @@ const Dashboard = ({
                                 trackingSince={user?.createdAt}
                                 limitPeriod={period}
                                 weekStartsOn={weekStartsOn}
+                                now={now}
                             />
                         </section>
 

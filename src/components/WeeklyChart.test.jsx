@@ -15,7 +15,7 @@ const renderHearts = (props) => {
 };
 
 const labelsOf = (html) =>
-    [...html.matchAll(/<span class="mt-2 [^"]*">([^<]*)<\/span>/g)].map(m => m[1]);
+    [...html.matchAll(/<span class="mt-2 [^"]*">(.*?)<\/span>/g)].map(m => m[1].replace(/<br\/>/g, ''));
 
 test('weekly mode shows date ranges for the last 5 weeks', () => {
     const html = renderHearts({ logs: [], trackingSince: at(2026, 0, 1), limitPeriod: 'week', weekStartsOn: 1 });
@@ -55,4 +55,26 @@ test('profiles without a period still show months', () => {
     expect(labelsOf(html)).toHaveLength(5);
     expect(labelsOf(html)[4]).toBe(new Date(2026, 10, 1).toLocaleString('default', { month: 'short' }));
     expect(html).toContain('your monthly limit of 5');
+});
+
+test('a week crossing months breaks onto two lines after the dash', () => {
+    const html = renderHearts({ logs: [], trackingSince: at(2026, 0, 1), limitPeriod: 'week', weekStartsOn: 1 });
+    expect(html).toContain('>Oct 26–<br/>Nov 1</span>');
+    expect(html).toContain('>Oct 5–11</span>');
+});
+
+test('weekly labels are not uppercased, so they stay narrow on phones', () => {
+    const html = renderHearts({ logs: [], trackingSince: at(2026, 0, 1), limitPeriod: 'week', weekStartsOn: 1 });
+    const weekly = [...html.matchAll(/<span class="(mt-2 [^"]*)">/g)].map(m => m[1]);
+    expect(weekly.every(c => !c.split(' ').includes('uppercase'))).toBe(true);
+});
+
+test('hearts follow the now prop, so a new week shows after the app was left open', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    const html = renderToStaticMarkup(
+        <WeeklyChart mode="historical" monthlyLimit={5} logs={[]} trackingSince={at(2026, 0, 1)}
+            limitPeriod="week" weekStartsOn={1} now={at(2026, 10, 9)} />
+    );
+    expect(labelsOf(html)[4]).toBe('Nov 9–15');
 });

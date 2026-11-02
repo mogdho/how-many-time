@@ -80,17 +80,24 @@ const BrokenHeartIcon =({ color, size = 52 }) => (
     </svg>
 );
 
+// "Oct 26–Nov 1" is too wide for a phone column, so break it after the dash.
+const splitAcrossMonths = (label) => {
+    const match = label.match(/^(.*–)(\D.*)$/);
+    return match ? <>{match[1]}<br />{match[2]}</> : label;
+};
+
 // One heart per month (or per week in weekly mode), for the last 5 periods.
-const MonthlyHearts = ({ logs, monthlyLimit, trackingSince, limitPeriod = 'month', weekStartsOn = 1 }) => {
+// `now` comes from the Dashboard so the hearts move on when a new week or month starts while the app is open.
+const MonthlyHearts = ({ logs, monthlyLimit, trackingSince, limitPeriod = 'month', weekStartsOn = 1, now }) => {
     const data = useMemo(() => {
         const startedPeriod = startOfPeriod(getTrackingStart(logs, trackingSince), limitPeriod, weekStartsOn);
-        const months = lastPeriods(5, limitPeriod, weekStartsOn).map(p => ({
+        const months = lastPeriods(5, limitPeriod, weekStartsOn, now ?? Date.now()).map(p => ({
             ...p,
             count: countBetween(logs, p.start, p.end),
             noData: p.start < startedPeriod,
         }));
         return { months };
-    }, [logs, trackingSince, limitPeriod, weekStartsOn]);
+    }, [logs, trackingSince, limitPeriod, weekStartsOn, now]);
 
         const isWeekly = limitPeriod === 'week';
 
@@ -129,8 +136,8 @@ const MonthlyHearts = ({ logs, monthlyLimit, trackingSince, limitPeriod = 'month
                                         </span>
                                     </div>
                                 )}
-                                <span className={`mt-2 font-bold uppercase whitespace-nowrap transition-colors ${m.label.length > 9 ? 'text-[9px] tracking-normal' : isWeekly ? 'text-[10px] tracking-wide' : 'text-[11px] tracking-widest'} ${m.noData ? 'text-white/30' : m.isCurrent ? 'text-peach' : 'text-muted group-hover:text-white'}`}>
-                                    {m.label}
+                                <span className={`mt-2 font-bold transition-colors ${isWeekly ? 'text-[10px] leading-tight text-center' : 'text-[11px] uppercase tracking-widest whitespace-nowrap'} ${m.noData ? 'text-white/30' : m.isCurrent ? 'text-peach' : 'text-muted group-hover:text-white'}`}>
+                                    {splitAcrossMonths(m.label)}
                                 </span>
                             </motion.div>
                         );
