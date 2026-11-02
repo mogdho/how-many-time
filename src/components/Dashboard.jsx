@@ -10,7 +10,10 @@ import MenuSheet from './MenuSheet';
 import { useDialog } from './DialogProvider';
 import PeriodToggle, { WeekStartPicker } from './PeriodToggle';
 import { readPeriodSettings, countInCurrentPeriod } from '../lib/periods';
-import { InstallPrompt } from './InstallPrompt';
+import PromptCard, { InstallPrompt } from './InstallPrompt';
+import StreakBanner from './StreakBanner';
+import { BellRing } from 'lucide-react';
+import { isReminderSupported, shouldShowReminderCard, enableReminder, disableReminder } from '../lib/reminder';
 import { getPrefs, updatePrefs } from '../lib/prefs';
 import { shouldShowInstallPrompt } from '../lib/install';
 import { isBiometricAvailable, registerBiometric } from '../lib/biometric';
@@ -40,6 +43,10 @@ const Dashboard = ({
     const [promptsReady, setPromptsReady] = useState(false);
     const [activePrompt, setActivePrompt] = useState(null);
     const [biometricAvailable, setBiometricAvailable] = useState(false);
+    // Evening reminder: the service worker registration and the notification permission.
+    const [swRegistration, setSwRegistration] = useState(null);
+    const [notifyPermission, setNotifyPermission] = useState(() => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission));
+    const reminderSupported = isReminderSupported(swRegistration, isInstalled);
 
     // Settings form state
     const [editUsername, setEditUsername] = useState('');
@@ -66,6 +73,7 @@ const Dashboard = ({
     useEffect(() => {
         getPrefs().then(setPrefs);
         isBiometricAvailable().then(setBiometricAvailable);
+        navigator.serviceWorker?.getRegistration().then((reg) => setSwRegistration(reg || null));
         const timer = window.setTimeout(() => setPromptsReady(true), 1500);
         return () => window.clearTimeout(timer);
     }, []);
@@ -74,7 +82,32 @@ const Dashboard = ({
     useEffect(() => {
         if (!promptsReady || activePrompt) return;
         if (shouldShowInstallPrompt({ isInstalled, canInstall, iosSafari, prefs })) setActivePrompt('install');
-    }, [promptsReady, activePrompt, isInstalled, canInstall, iosSafari, prefs]);
+        else if (shouldShowReminderCard({ supported: reminderSupported, permission: notifyPermission, prefs })) setActivePrompt('reminder');
+    }, [promptsReady, activePrompt, isInstalled, canInstall, iosSafari, prefs, reminderSupported, notifyPermission]);
+
+    const requestNotifyPermission = async () => {
+        const result = await Notification.requestPermission();
+        setNotifyPermission(result);
+        return result;
+    };
+
+    const turnOnReminder = async () => {
+        const result = await enableReminder({ requestPermission: requestNotifyPermission, registration: swRegistration });
+        setPrefs(await getPrefs());
+        return result;
+    };
+
+    const toggleReminder = async () => {
+        if (prefs?.reminderEnabled) {
+            await disableReminder(swRegistration);
+            setPrefs(await getPrefs());
+            return;
+        }
+        const result = await turnOnReminder();
+        if (result === 'unsupported') {
+            await dialog.alert({ title: 'Reminder not available', message: "This browser didn't allow the evening reminder. Try again after using the app for a few days." });
+        }
+    };
 
     const closePrompt = async (patch) => {
         setActivePrompt('done');
@@ -232,6 +265,9 @@ const Dashboard = ({
 
             <main className="flex-grow flex flex-col items-center w-full px-4 md:px-6 text-center">
                 <div className="max-w-3xl w-full flex flex-col items-center flex-grow">
+                    <div className="pt-2">
+                        <StreakBanner logs={logs} user={user} now={now} />
+                    </div>
 
                     {/* Main button */}
                     <div className="flex flex-col justify-center items-center w-full min-h-[42vh] py-6">
@@ -322,6 +358,23 @@ const Dashboard = ({
             </AnimatePresence>
 
             <AnimatePresence>
+                {activePrompt === 'reminder' && (
+                    <PromptCard
+                        icon={BellRing}
+                        title="Get an evening reminder?"
+                        message="A short nudge each evening with your clean days. It never says what you're tracking."
+                        onClose={() => closePrompt({ reminderPromptShown: true })}
+                    >
+                        <button type="button" onClick={() => closePrompt({ reminderPromptShown: true })} className="btn btn-ghost flex-1">No thanks</button>
+                        <button
+                            type="button"
+                            onClick={async () => { const asked = turnOnReminder(); await closePrompt({ reminderPromptShown: true }); await asked; }}
+                            className="btn btn-primary flex-1"
+                        >
+                            Turn on
+                        </button>
+                    </PromptCard>
+                )}
                 {activePrompt === 'install' && (
                     <InstallPrompt
                         iosSafari={iosSafari && !canInstall}
@@ -346,6 +399,11 @@ const Dashboard = ({
                 onOpenSettings={openSettings}
                 onLock={() => window.location.reload()}
                 biometricAvailable={biometricAvailable}
+                reminderAvailable={Boolean(swRegistration && 'periodicSync' in swRegistration)}
+                reminderSupported={reminderSupported}
+                reminderOn={Boolean(prefs?.reminderEnabled) && notifyPermission === 'granted'}
+                notifyDenied={notifyPermission === 'denied'}
+                onToggleReminder={toggleReminder}
                 biometricOn={Boolean(user?.biometricCredentialId)}
                 onToggleBiometric={toggleBiometric}
             />

@@ -35,6 +35,10 @@ No sign-up · No servers · Works offline · Installs like a normal app
    - **Hearts:** each month (or each week, with a weekly limit) gets a heart that **drains** as you get closer to your limit. Go over the limit and it turns into a grey **broken heart**. Dashed hearts are periods before you started. Weekly hearts are labelled with their dates (e.g. *Oct 5–11*); choose which day your week starts on in **☰ menu → Change credentials**.
    - **Seven-day slip:** your total for the last 7 days, whether that's **better ▼ or worse ▲** than the 7 days before, and a bar for each day (the faint bar behind it is the same day a week earlier).
 
+### Evening reminder
+
+On **Android (Chrome or Edge), with the app installed**, you can turn on an **evening reminder** (the app offers it once after installing, or use **☰ menu → Evening reminder**). Some time after 3 pm it shows your clean days, e.g. *"3 clean days. Keep going."*, or a nudge if you slipped today. It **never says what you're tracking**, so it's safe on a lock screen. The browser decides exactly when it runs, so some days it may come late or not at all. Everyone also sees the same count as a banner at the top of the app.
+
 ## Your data stays yours
 
 - **Everything is stored on your device only**, in your browser's own storage. Nothing is uploaded, there's no account, and there's no tracking or analytics.

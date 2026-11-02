@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Settings, RefreshCw, Lock, Fingerprint, ChevronRight, ChevronDown, CheckCircle2, X } from 'lucide-react';
+import { Download, Settings, RefreshCw, Lock, Fingerprint, BellRing, ChevronRight, ChevronDown, CheckCircle2, X } from 'lucide-react';
 
 // One tappable row: icon bubble, title, short description, trailing chevron
 const SheetRow = ({ icon: Icon, title, subtitle, onClick, trailing, tone = 'peach', expanded }) => (
@@ -37,6 +37,11 @@ const MenuSheet = ({
     biometricAvailable,
     biometricOn,
     onToggleBiometric,
+    reminderAvailable,
+    reminderSupported,
+    reminderOn,
+    notifyDenied,
+    onToggleReminder,
 }) => {
     const [showInstallHelp, setShowInstallHelp] = useState(false);
 
@@ -159,6 +164,22 @@ const MenuSheet = ({
                                 subtitle="Name, habit, limit, week start, PIN"
                                 onClick={onOpenSettings}
                             />
+
+                            {reminderAvailable && (
+                                <SheetRow
+                                    icon={BellRing}
+                                    title="Evening reminder"
+                                    subtitle={
+                                        !reminderSupported ? 'Install the app to get an evening reminder.'
+                                            : notifyDenied ? 'Allow notifications for this site in your browser settings.'
+                                                : 'A daily nudge in the evening'
+                                    }
+                                    onClick={reminderSupported && !notifyDenied ? onToggleReminder : undefined}
+                                    trailing={reminderSupported
+                                        ? <span className={`text-xs font-bold shrink-0 ${reminderOn ? 'text-peach' : 'text-muted'}`}>{reminderOn ? 'On' : 'Off'}</span>
+                                        : <span />}
+                                />
+                            )}
 
                             {biometricAvailable && (
                                 <SheetRow
