@@ -12,11 +12,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false, // SW is registered in src/lib/pwa.js
-      workbox: {
-        // এই অংশটি সাদা স্ক্রিন ফিক্স করতে সাহায্য করবে
+      // Our own service worker (src/sw.js) so it can show the evening reminder.
+      // Offline caching and the index.html fallback are set up inside it.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        navigateFallback: 'index.html',
-        cleanupOutdatedCaches: true,
       },
       manifest: {
         name: 'How many times I have done it',
@@ -45,6 +47,9 @@ export default defineConfig({
       }
     })
   ],
+  test: {
+    env: { TZ: 'America/New_York' },
+  },
   build: {
     // Vite 8 এর নতুন এরর এড়াতে এই সেটিংসটি যোগ করুন
     commonjsOptions: {

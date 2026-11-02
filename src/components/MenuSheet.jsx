@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Settings, RefreshCw, Lock, ChevronRight, ChevronDown, CheckCircle2, X } from 'lucide-react';
+import { Download, Settings, RefreshCw, Lock, Fingerprint, BellRing, ChevronRight, ChevronDown, CheckCircle2, X } from 'lucide-react';
 
 // One tappable row: icon bubble, title, short description, trailing chevron
 const SheetRow = ({ icon: Icon, title, subtitle, onClick, trailing, tone = 'peach', expanded }) => (
@@ -24,7 +24,8 @@ const MenuSheet = ({
     open,
     onClose,
     user,
-    monthCount,
+    periodCount,
+    periodLabel,
     isUpdateAvailable,
     onUpdate,
     isInstalled,
@@ -33,6 +34,14 @@ const MenuSheet = ({
     onInstall,
     onOpenSettings,
     onLock,
+    biometricAvailable,
+    biometricOn,
+    onToggleBiometric,
+    reminderAvailable,
+    reminderSupported,
+    reminderOn,
+    notifyDenied,
+    onToggleReminder,
 }) => {
     const [showInstallHelp, setShowInstallHelp] = useState(false);
 
@@ -91,7 +100,7 @@ const MenuSheet = ({
                             <span className="flex-1 min-w-0">
                                 <span className="block font-bold text-text truncate">{user?.username}</span>
                                 <span className="block text-xs text-muted truncate">
-                                    {user?.guiltyPleasure} · {monthCount}{limit ? ` of ${limit}` : ''} this month
+                                    {user?.guiltyPleasure} · {periodCount}{limit ? ` of ${limit}` : ''} {periodLabel}
                                 </span>
                             </span>
                             <button
@@ -152,9 +161,35 @@ const MenuSheet = ({
                             <SheetRow
                                 icon={Settings}
                                 title="Change credentials"
-                                subtitle="Name, habit, monthly limit, PIN"
+                                subtitle="Name, habit, limit, week start, PIN"
                                 onClick={onOpenSettings}
                             />
+
+                            {reminderAvailable && (
+                                <SheetRow
+                                    icon={BellRing}
+                                    title="Evening reminder"
+                                    subtitle={
+                                        !reminderSupported ? 'Install the app to get an evening reminder.'
+                                            : notifyDenied ? 'Allow notifications for this site in your browser settings.'
+                                                : 'A daily nudge in the evening'
+                                    }
+                                    onClick={reminderSupported && !notifyDenied ? onToggleReminder : undefined}
+                                    trailing={reminderSupported
+                                        ? <span className={`text-xs font-bold shrink-0 ${reminderOn ? 'text-peach' : 'text-muted'}`}>{reminderOn ? 'On' : 'Off'}</span>
+                                        : <span />}
+                                />
+                            )}
+
+                            {biometricAvailable && (
+                                <SheetRow
+                                    icon={Fingerprint}
+                                    title="Unlock with fingerprint"
+                                    subtitle="Use your phone's fingerprint or face unlock"
+                                    onClick={onToggleBiometric}
+                                    trailing={<span className={`text-xs font-bold shrink-0 ${biometricOn ? 'text-peach' : 'text-muted'}`}>{biometricOn ? 'On' : 'Off'}</span>}
+                                />
+                            )}
 
                             <SheetRow
                                 icon={Lock}

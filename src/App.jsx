@@ -4,6 +4,7 @@ import { applyPwaUpdate, getPwaState, promptInstall, subscribeToPwaState } from 
 import AuthSetup from './components/AuthSetup';
 import AuthUnlock from './components/AuthUnlock';
 import Dashboard from './components/Dashboard';
+import { isIosSafari } from './lib/install';
 import './App.css';
 
 function isStandaloneMode() {
@@ -103,6 +104,7 @@ function App() {
                 <Dashboard
                     canInstall={pwaState.canInstall}
                     installHelp={getInstallHelp()}
+                    iosSafari={isIosSafari(window.navigator.userAgent)}
                     isInstalled={isInstalled}
                     isOfflineReady={showOfflineReady}
                     isOnline={isOnline}

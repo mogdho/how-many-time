@@ -28,17 +28,22 @@ No sign-up · No servers · Works offline · Installs like a normal app
 
 ## How it works
 
-1. **Set it up once.** Enter your name, the habit you're tracking, a **monthly limit**, and a 4-digit PIN.
+1. **Set it up once.** Enter your name, the habit you're tracking, a **weekly or monthly limit**, and a 4-digit PIN.
 2. **Tap GUILTY** every time you slip. Your phone gives a short buzz to confirm it.
    Tapped by mistake? Hit **Undo** within 10 seconds.
 3. **Watch your progress.**
-   - **Monthly hearts:** each month gets a heart that **drains** as you get closer to your limit. Go over the limit and it turns into a grey **broken heart**. Dashed hearts are months before you started.
+   - **Hearts:** each month (or each week, with a weekly limit) gets a heart that **drains** as you get closer to your limit. Go over the limit and it turns into a grey **broken heart**. Dashed hearts are periods before you started. Weekly hearts are labelled with their dates (e.g. *Oct 5–11*); choose which day your week starts on in **☰ menu → Change credentials**.
    - **Seven-day slip:** your total for the last 7 days, whether that's **better ▼ or worse ▲** than the 7 days before, and a bar for each day (the faint bar behind it is the same day a week earlier).
+
+### Evening reminder
+
+On **Android (Chrome or Edge), with the app installed**, you can turn on an **evening reminder** (the app offers it once after installing, or use **☰ menu → Evening reminder**). Some time after 3 pm it shows your clean days, e.g. *"3 clean days. Keep going."*, or a nudge if you slipped today. It **never says what you're tracking**, so it's safe on a lock screen. The browser decides exactly when it runs, so some days it may come late or not at all. Everyone also sees the same count as a banner at the top of the app.
 
 ## Your data stays yours
 
 - **Everything is stored on your device only**, in your browser's own storage. Nothing is uploaded, there's no account, and there's no tracking or analytics.
 - **PIN lock:** the app asks for your PIN every time you open it. Use **Lock now** in the menu to lock it straight away.
+- **Fingerprint unlock (optional):** turn on **Unlock with fingerprint** in the menu to unlock with your phone's fingerprint or face unlock. The PIN always works too. Fingerprint unlock is a screen lock like the PIN; your logs are not encrypted.
 - **Wipe protection:** after 7 wrong PINs you get a warning, and on the **10th wrong attempt all data is erased**.
 - **Panic wipe:** one button at the bottom of the screen erases everything immediately (it asks you to confirm first).
 
@@ -78,7 +83,8 @@ npm run preview  # serve the production build locally (PWA features work here)
 | `src/index.css` | Color palette and fonts. Use these tokens (`bg-peach`, `text-brand`, `border-crimson`…) rather than raw hex colors. |
 | `src/App.css` | Shared component styles: `.btn`, `.glass`, `.panel`, form fields. |
 | `src/components/Dashboard.jsx` | Main screen: GUILTY button, undo, settings. |
-| `src/components/WeeklyChart.jsx` | Monthly hearts and the seven-day chart. |
+| `src/components/WeeklyChart.jsx` | Weekly/monthly hearts and the seven-day chart. |
+| `src/lib/periods.js` | Week and month ranges, labels and counts (tested in `periods.test.js`; run `npm test`). |
 | `src/components/MenuSheet.jsx` | The bottom-sheet menu. |
 | `src/components/DialogProvider.jsx` | Themed `alert`/`confirm` dialogs. Use `useDialog()` instead of the browser's `alert()`/`confirm()`. |
 | `src/lib/db.js` | Local storage (IndexedDB) for logs and the user profile. |

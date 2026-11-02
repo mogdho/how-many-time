@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { lastPeriods, startOfPeriod, getTrackingStart } from '../lib/periods';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -7,12 +8,6 @@ const startOfDay = (ts) => {
     const d = new Date(ts);
     d.setHours(0, 0, 0, 0);
     return d.getTime();
-};
-
-// When tracking began. Older accounts have no signup date, so fall back to the first log.
-const getTrackingStart = (logs, trackingSince) => {
-    const firstLog = logs.length ? Math.min(...logs.map(l => l.timestamp)) : Date.now();
-    return Math.min(trackingSince || Infinity, firstLog);
 };
 
 const countBetween = (logs, from, to) => logs.filter(l => l.timestamp >= from && l.timestamp < to).length;
@@ -69,7 +64,7 @@ const DrainingHeart = ({ id, color, fill, delay, size = 52 }) => {
     );
 };
 
-// Months before tracking began: faint dashed outline, no fill
+// Periods before tracking began: faint dashed outline, no fill
 const NoDataHeart = ({ size = 52 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path d={HEART_PATH} fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="1" strokeDasharray="1.6 1.4" />
@@ -85,23 +80,26 @@ const BrokenHeartIcon =({ color, size = 52 }) => (
     </svg>
 );
 
-const MonthlyHearts = ({ logs, monthlyLimit, trackingSince }) => {
+// "Oct 26–Nov 1" is too wide for a phone column, so break it after the dash.
+const splitAcrossMonths = (label) => {
+    const match = label.match(/^(.*–)(\D.*)$/);
+    return match ? <>{match[1]}<br />{match[2]}</> : label;
+};
+
+// One heart per month (or per week in weekly mode), for the last 5 periods.
+// `now` comes from the Dashboard so the hearts move on when a new week or month starts while the app is open.
+const MonthlyHearts = ({ logs, monthlyLimit, trackingSince, limitPeriod = 'month', weekStartsOn = 1, now }) => {
     const data = useMemo(() => {
-        const now = new Date();
-        const startedAt = new Date(getTrackingStart(logs, trackingSince));
-        const startedMonth = new Date(startedAt.getFullYear(), startedAt.getMonth(), 1).getTime();
-        const months = [];
-        for (let i = 4; i >= 0; i--) {
-            const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-            months.push({
-                label: start.toLocaleString('default', { month: 'short' }),
-                count: countBetween(logs, start.getTime(), end.getTime()),
-                noData: start.getTime() < startedMonth,
-            });
-        }
+        const startedPeriod = startOfPeriod(getTrackingStart(logs, trackingSince), limitPeriod, weekStartsOn);
+        const months = lastPeriods(5, limitPeriod, weekStartsOn, now ?? Date.now()).map(p => ({
+            ...p,
+            count: countBetween(logs, p.start, p.end),
+            noData: p.start < startedPeriod,
+        }));
         return { months };
-    }, [logs, trackingSince]);
+    }, [logs, trackingSince, limitPeriod, weekStartsOn, now]);
+
+        const isWeekly = limitPeriod === 'week';
 
         const limit = monthlyLimit || 30; // limit is required at signup; this only guards old data
 
@@ -115,7 +113,7 @@ const MonthlyHearts = ({ logs, monthlyLimit, trackingSince }) => {
 
                         return (
                             <motion.div
-                                key={idx}
+                                key={m.start}
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: idx * 0.1, duration: 0.4 }}
@@ -138,16 +136,16 @@ const MonthlyHearts = ({ logs, monthlyLimit, trackingSince }) => {
                                         </span>
                                     </div>
                                 )}
-                                <span className={`mt-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${m.noData ? 'text-white/30' : 'text-muted group-hover:text-white'}`}>
-                                    {m.label}
+                                <span className={`mt-2 font-bold transition-colors ${isWeekly ? 'text-[10px] leading-tight text-center' : 'text-[11px] uppercase tracking-widest whitespace-nowrap'} ${m.noData ? 'text-white/30' : m.isCurrent ? 'text-peach' : 'text-muted group-hover:text-white'}`}>
+                                    {splitAcrossMonths(m.label)}
                                 </span>
                             </motion.div>
                         );
                     })}
                 </div>
                 <p className="mt-5 text-[11px] text-muted">
-                    Each heart drains as you get closer to your limit of {limit}.
-                    {data.months.some(m => m.noData) && ' Dashed hearts are months before you started.'}
+                    Each heart drains as you get closer to your {isWeekly ? 'weekly' : 'monthly'} limit of {limit}.
+                    {data.months.some(m => m.noData) && ` Dashed hearts are ${isWeekly ? 'weeks' : 'months'} before you started.`}
                 </p>
             </div>
         );

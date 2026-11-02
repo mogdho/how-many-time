@@ -8,10 +8,20 @@ import WeeklyChart from './WeeklyChart';
 import { Trash2, WifiOff, ShieldCheck, Menu } from 'lucide-react';
 import MenuSheet from './MenuSheet';
 import { useDialog } from './DialogProvider';
+import PeriodToggle, { WeekStartPicker } from './PeriodToggle';
+import { readPeriodSettings, countInCurrentPeriod } from '../lib/periods';
+import PromptCard, { InstallPrompt } from './InstallPrompt';
+import StreakBanner from './StreakBanner';
+import { BellRing } from 'lucide-react';
+import { isReminderSupported, enableReminder, disableReminder, reminderResultAlert } from '../lib/reminder';
+import { getPrefs, updatePrefs } from '../lib/prefs';
+import { pickPrompt } from '../lib/prompts';
+import { isBiometricAvailable, registerBiometric } from '../lib/biometric';
 
 const Dashboard = ({
     canInstall,
     installHelp,
+    iosSafari,
     isInstalled,
     isOfflineReady,
     isOnline,
@@ -21,16 +31,30 @@ const Dashboard = ({
 }) => {
     const dialog = useDialog();
     const [logs, setLogs] = useState([]);
+    const [logsLoaded, setLogsLoaded] = useState(false);
     const [user, setUser] = useState(null);
     const [showUndo, setShowUndo] = useState(false);
     const [undoTimer, setUndoTimer] = useState(0);
     const [menuOpen, setMenuOpen] = useState(false);
+    // Refreshed when the app comes back into view and once a minute, so a new week or month shows up without a reload.
+    const [now, setNow] = useState(() => Date.now());
     const [showSettings, setShowSettings] = useState(false);
+    // One-time prompts (install, later the reminder card). Only one is shown at a time.
+    const [prefs, setPrefs] = useState(null);
+    const [promptsReady, setPromptsReady] = useState(false);
+    const [activePrompt, setActivePrompt] = useState(null);
+    const [biometricAvailable, setBiometricAvailable] = useState(false);
+    // Evening reminder: the service worker registration and the notification permission.
+    const [swRegistration, setSwRegistration] = useState(null);
+    const [notifyPermission, setNotifyPermission] = useState(() => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission));
+    const reminderSupported = isReminderSupported(swRegistration, isInstalled);
 
     // Settings form state
     const [editUsername, setEditUsername] = useState('');
     const [editGuiltyPleasure, setEditGuiltyPleasure] = useState('');
     const [editMonthlyLimit, setEditMonthlyLimit] = useState('');
+    const [editLimitPeriod, setEditLimitPeriod] = useState('month');
+    const [editWeekStartsOn, setEditWeekStartsOn] = useState(1);
     const [editPin, setEditPin] = useState('');
     const [editConfirmPin, setEditConfirmPin] = useState('');
     const [settingsError, setSettingsError] = useState('');
@@ -38,12 +62,67 @@ const Dashboard = ({
 
     useEffect(() => {
         const loadData = async () => {
-            const fetchedUser = await getUser();
+            const [fetchedUser, allLogs] = await Promise.all([getUser(), getLogs()]);
             if (fetchedUser) setUser(fetchedUser);
-            const allLogs = await getLogs();
             setLogs(allLogs);
+            setLogsLoaded(true);
         };
         loadData();
+    }, []);
+
+    // Load prefs, then wait a moment after unlock before showing any one-time prompt.
+    useEffect(() => {
+        getPrefs().then(setPrefs);
+        isBiometricAvailable().then(setBiometricAvailable);
+        navigator.serviceWorker?.getRegistration().then((reg) => setSwRegistration(reg || null));
+        const timer = window.setTimeout(() => setPromptsReady(true), 1500);
+        return () => window.clearTimeout(timer);
+    }, []);
+
+    // canInstall can turn true late (the browser's install event), so this re-checks when it changes.
+    useEffect(() => {
+        if (!promptsReady || activePrompt) return;
+        const next = pickPrompt({ isInstalled, canInstall, iosSafari, prefs, reminderSupported, permission: notifyPermission, showUndo });
+        if (next) setActivePrompt(next);
+    }, [promptsReady, activePrompt, isInstalled, canInstall, iosSafari, prefs, reminderSupported, notifyPermission, showUndo]);
+
+    const requestNotifyPermission = async () => {
+        const result = await Notification.requestPermission();
+        setNotifyPermission(result);
+        return result;
+    };
+
+    const turnOnReminder = async () => {
+        const result = await enableReminder({ requestPermission: requestNotifyPermission, registration: swRegistration });
+        setPrefs(await getPrefs());
+        const alert = reminderResultAlert(result);
+        if (alert) await dialog.alert(alert);
+        return result;
+    };
+
+    const toggleReminder = async () => {
+        if (prefs?.reminderEnabled) {
+            await disableReminder(swRegistration);
+            setPrefs(await getPrefs());
+            return;
+        }
+        await turnOnReminder();
+    };
+
+    const closePrompt = async (patch) => {
+        setActivePrompt('done');
+        setPrefs(await updatePrefs(patch));
+    };
+
+    useEffect(() => {
+        const refresh = () => setNow(Date.now());
+        const onVisible = () => document.visibilityState === 'visible' && refresh();
+        document.addEventListener('visibilitychange', onVisible);
+        const timer = window.setInterval(refresh, 60 * 1000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            window.clearInterval(timer);
+        };
     }, []);
 
     const handleAddLog = async () => {
@@ -87,6 +166,9 @@ const Dashboard = ({
         setEditUsername(user?.username || '');
         setEditGuiltyPleasure(user?.guiltyPleasure || '');
         setEditMonthlyLimit(user?.monthlyLimit ? String(user.monthlyLimit) : '');
+        const settings = readPeriodSettings(user);
+        setEditLimitPeriod(settings.period);
+        setEditWeekStartsOn(settings.weekStartsOn);
         setEditPin('');
         setEditConfirmPin('');
         setSettingsError('');
@@ -106,6 +188,8 @@ const Dashboard = ({
         if (editUsername.trim()) updatedUser.username = editUsername.trim();
         updatedUser.guiltyPleasure = editGuiltyPleasure.trim() || 'Guilty Pleasure';
         updatedUser.monthlyLimit = editMonthlyLimit ? parseInt(editMonthlyLimit, 10) : user?.monthlyLimit;
+        updatedUser.limitPeriod = editLimitPeriod;
+        updatedUser.weekStartsOn = editWeekStartsOn;
 
         // If PIN fields are filled, update the PIN
         if (editPin || editConfirmPin) {
@@ -118,6 +202,8 @@ const Dashboard = ({
                 return;
             }
             updatedUser.pinHash = await hashPIN(editPin);
+            // A new PIN turns fingerprint unlock off; it can be set up again from the menu.
+            delete updatedUser.biometricCredentialId;
         }
 
         updatedUser.failedAttempts = 0;
@@ -127,15 +213,29 @@ const Dashboard = ({
         setTimeout(() => setShowSettings(false), 800);
     };
 
+    const toggleBiometric = async () => {
+        if (user?.biometricCredentialId) {
+            const updated = { ...user };
+            delete updated.biometricCredentialId;
+            await saveUser(updated);
+            setUser(updated);
+            return;
+        }
+        const credentialId = await registerBiometric(user?.username);
+        if (!credentialId) {
+            await dialog.alert({ title: 'Fingerprint not set up', message: 'Nothing was changed. You can try again from the menu.' });
+            return;
+        }
+        const updated = { ...user, biometricCredentialId: credentialId };
+        await saveUser(updated);
+        setUser(updated);
+    };
+
     const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-    const currentMonthCount = logs.filter(l => {
-        const d = new Date(l.timestamp);
-        const now = new Date();
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-
-    const isOverLimit = user?.monthlyLimit && currentMonthCount >= user.monthlyLimit;
+    const { period, weekStartsOn } = readPeriodSettings(user);
+    const isWeekly = period === 'week';
+    const currentPeriodCount = countInCurrentPeriod(logs, period, weekStartsOn, now);
 
     return (
         <div className="min-h-screen flex flex-col items-center">
@@ -165,6 +265,9 @@ const Dashboard = ({
 
             <main className="flex-grow flex flex-col items-center w-full px-4 md:px-6 text-center">
                 <div className="max-w-3xl w-full flex flex-col items-center flex-grow">
+                    <div className="pt-2">
+                        <StreakBanner logs={logs} loaded={logsLoaded} user={user} now={now} />
+                    </div>
 
                     {/* Main button */}
                     <div className="flex flex-col justify-center items-center w-full min-h-[42vh] py-6">
@@ -176,8 +279,16 @@ const Dashboard = ({
                     {/* Charts */}
                     <div className="flex flex-col w-full gap-10 md:gap-12">
                         <section className="flex flex-col items-center gap-5">
-                            <h2 className="section-title">Monthly fault</h2>
-                            <WeeklyChart logs={logs} mode="historical" monthlyLimit={user?.monthlyLimit} trackingSince={user?.createdAt} />
+                            <h2 className="section-title">{isWeekly ? 'Weekly fault' : 'Monthly fault'}</h2>
+                            <WeeklyChart
+                                logs={logs}
+                                mode="historical"
+                                monthlyLimit={user?.monthlyLimit}
+                                trackingSince={user?.createdAt}
+                                limitPeriod={period}
+                                weekStartsOn={weekStartsOn}
+                                now={now}
+                            />
                         </section>
 
                         <section className="flex flex-col items-center gap-5">
@@ -246,11 +357,39 @@ const Dashboard = ({
                 )}
             </AnimatePresence>
 
+            <AnimatePresence>
+                {activePrompt === 'reminder' && (
+                    <PromptCard
+                        icon={BellRing}
+                        title="Get an evening reminder?"
+                        message="A short nudge each evening with your clean days. It never says what you're tracking."
+                        onClose={() => closePrompt({ reminderPromptShown: true })}
+                    >
+                        <button type="button" onClick={() => closePrompt({ reminderPromptShown: true })} className="btn btn-ghost flex-1">No thanks</button>
+                        <button
+                            type="button"
+                            onClick={async () => { const asked = turnOnReminder(); await closePrompt({ reminderPromptShown: true }); await asked; }}
+                            className="btn btn-primary flex-1"
+                        >
+                            Turn on
+                        </button>
+                    </PromptCard>
+                )}
+                {activePrompt === 'install' && (
+                    <InstallPrompt
+                        iosSafari={iosSafari && !canInstall}
+                        onInstall={onInstallClick}
+                        onDone={() => closePrompt({ installPromptShown: true })}
+                    />
+                )}
+            </AnimatePresence>
+
             <MenuSheet
                 open={menuOpen}
                 onClose={closeMenu}
                 user={user}
-                monthCount={currentMonthCount}
+                periodCount={currentPeriodCount}
+                periodLabel={isWeekly ? 'this week' : 'this month'}
                 isUpdateAvailable={isUpdateAvailable}
                 onUpdate={onUpdateClick}
                 isInstalled={isInstalled}
@@ -259,6 +398,14 @@ const Dashboard = ({
                 onInstall={onInstallClick}
                 onOpenSettings={openSettings}
                 onLock={() => window.location.reload()}
+                biometricAvailable={biometricAvailable}
+                reminderAvailable={Boolean(swRegistration && 'periodicSync' in swRegistration)}
+                reminderSupported={reminderSupported}
+                reminderOn={Boolean(prefs?.reminderEnabled) && notifyPermission === 'granted'}
+                notifyDenied={notifyPermission === 'denied'}
+                onToggleReminder={toggleReminder}
+                biometricOn={Boolean(user?.biometricCredentialId)}
+                onToggleBiometric={toggleBiometric}
             />
 
             {/* Settings Modal */}
@@ -309,7 +456,11 @@ const Dashboard = ({
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label" htmlFor="edit-limit">Monthly limit</label>
+                                    <span className="field-label" id="edit-period-label">Limit per</span>
+                                    <PeriodToggle value={editLimitPeriod} onChange={setEditLimitPeriod} labelledBy="edit-period-label" />
+                                </div>
+                                <div>
+                                    <label className="field-label" htmlFor="edit-limit">{editLimitPeriod === 'week' ? 'Weekly limit' : 'Monthly limit'}</label>
                                     <input
                                         id="edit-limit"
                                         type="number"
@@ -321,6 +472,13 @@ const Dashboard = ({
                                         required
                                     />
                                 </div>
+                                {editLimitPeriod === 'week' && (
+                                    <div>
+                                        <span className="field-label" id="edit-week-start-label">Week starts on</span>
+                                        <WeekStartPicker value={editWeekStartsOn} onChange={setEditWeekStartsOn} labelledBy="edit-week-start-label" />
+                                        <p className="text-muted text-xs mt-2 text-left">Changes how weeks are grouped in the hearts.</p>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="field-label" htmlFor="edit-pin">New PIN</label>
