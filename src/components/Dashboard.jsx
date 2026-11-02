@@ -10,10 +10,14 @@ import MenuSheet from './MenuSheet';
 import { useDialog } from './DialogProvider';
 import PeriodToggle, { WeekStartPicker } from './PeriodToggle';
 import { readPeriodSettings, countInCurrentPeriod } from '../lib/periods';
+import { InstallPrompt } from './InstallPrompt';
+import { getPrefs, updatePrefs } from '../lib/prefs';
+import { shouldShowInstallPrompt } from '../lib/install';
 
 const Dashboard = ({
     canInstall,
     installHelp,
+    iosSafari,
     isInstalled,
     isOfflineReady,
     isOnline,
@@ -30,6 +34,10 @@ const Dashboard = ({
     // Refreshed when the app comes back into view and once a minute, so a new week or month shows up without a reload.
     const [now, setNow] = useState(() => Date.now());
     const [showSettings, setShowSettings] = useState(false);
+    // One-time prompts (install, later the reminder card). Only one is shown at a time.
+    const [prefs, setPrefs] = useState(null);
+    const [promptsReady, setPromptsReady] = useState(false);
+    const [activePrompt, setActivePrompt] = useState(null);
 
     // Settings form state
     const [editUsername, setEditUsername] = useState('');
@@ -51,6 +59,24 @@ const Dashboard = ({
         };
         loadData();
     }, []);
+
+    // Load prefs, then wait a moment after unlock before showing any one-time prompt.
+    useEffect(() => {
+        getPrefs().then(setPrefs);
+        const timer = window.setTimeout(() => setPromptsReady(true), 1500);
+        return () => window.clearTimeout(timer);
+    }, []);
+
+    // canInstall can turn true late (the browser's install event), so this re-checks when it changes.
+    useEffect(() => {
+        if (!promptsReady || activePrompt) return;
+        if (shouldShowInstallPrompt({ isInstalled, canInstall, iosSafari, prefs })) setActivePrompt('install');
+    }, [promptsReady, activePrompt, isInstalled, canInstall, iosSafari, prefs]);
+
+    const closePrompt = async (patch) => {
+        setActivePrompt('done');
+        setPrefs(await updatePrefs(patch));
+    };
 
     useEffect(() => {
         const refresh = () => setNow(Date.now());
@@ -269,6 +295,16 @@ const Dashboard = ({
                             <span className="opacity-60 font-bold tabular-nums">{undoTimer}s</span>
                         </motion.button>
                     </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {activePrompt === 'install' && (
+                    <InstallPrompt
+                        iosSafari={iosSafari && !canInstall}
+                        onInstall={onInstallClick}
+                        onDone={() => closePrompt({ installPromptShown: true })}
+                    />
                 )}
             </AnimatePresence>
 
