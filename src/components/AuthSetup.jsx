@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { hashPIN as hashPINUtil } from '../lib/security';
 import { saveUser as saveUserDB } from '../lib/db';
+import PeriodToggle from './PeriodToggle';
 
 const AuthSetup = ({ onComplete }) => {
     const [username, setUsername] = useState('');
     const [guiltyPleasure, setGuiltyPleasure] = useState('');
+    const [limitPeriod, setLimitPeriod] = useState('week');
     const [monthlyLimit, setMonthlyLimit] = useState('');
     const [pin, setPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -29,6 +31,8 @@ const AuthSetup = ({ onComplete }) => {
             failedAttempts: 0,
             guiltyPleasure: guiltyPleasure || 'Guilty Pleasure',
             monthlyLimit: monthlyLimit ? parseInt(monthlyLimit, 10) : null,
+            limitPeriod,
+            weekStartsOn: 1,
             createdAt: Date.now()
         });
         onComplete();
@@ -69,7 +73,11 @@ const AuthSetup = ({ onComplete }) => {
                     />
                 </div>
                 <div>
-                    <label className="field-label" htmlFor="setup-limit">Monthly limit</label>
+                    <span className="field-label" id="setup-period-label">Limit per</span>
+                    <PeriodToggle value={limitPeriod} onChange={setLimitPeriod} labelledBy="setup-period-label" />
+                </div>
+                <div>
+                    <label className="field-label" htmlFor="setup-limit">{limitPeriod === 'week' ? 'Weekly limit' : 'Monthly limit'}</label>
                     <input
                         id="setup-limit"
                         type="number"
@@ -78,7 +86,7 @@ const AuthSetup = ({ onComplete }) => {
                         value={monthlyLimit}
                         onChange={(e) => setMonthlyLimit(e.target.value)}
                         className="auth-input text-lg"
-                        placeholder="e.g. 10"
+                        placeholder={limitPeriod === 'week' ? 'e.g. 5' : 'e.g. 20'}
                         required
                     />
                 </div>

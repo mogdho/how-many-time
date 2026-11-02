@@ -28,11 +28,11 @@ No sign-up · No servers · Works offline · Installs like a normal app
 
 ## How it works
 
-1. **Set it up once.** Enter your name, the habit you're tracking, a **monthly limit**, and a 4-digit PIN.
+1. **Set it up once.** Enter your name, the habit you're tracking, a **weekly or monthly limit**, and a 4-digit PIN.
 2. **Tap GUILTY** every time you slip. Your phone gives a short buzz to confirm it.
    Tapped by mistake? Hit **Undo** within 10 seconds.
 3. **Watch your progress.**
-   - **Monthly hearts:** each month gets a heart that **drains** as you get closer to your limit. Go over the limit and it turns into a grey **broken heart**. Dashed hearts are months before you started.
+   - **Hearts:** each month (or each week, with a weekly limit) gets a heart that **drains** as you get closer to your limit. Go over the limit and it turns into a grey **broken heart**. Dashed hearts are periods before you started. Weekly hearts are labelled with their dates (e.g. *Oct 5–11*); choose which day your week starts on in **☰ menu → Change credentials**.
    - **Seven-day slip:** your total for the last 7 days, whether that's **better ▼ or worse ▲** than the 7 days before, and a bar for each day (the faint bar behind it is the same day a week earlier).
 
 ## Your data stays yours
@@ -78,7 +78,8 @@ npm run preview  # serve the production build locally (PWA features work here)
 | `src/index.css` | Color palette and fonts. Use these tokens (`bg-peach`, `text-brand`, `border-crimson`…) rather than raw hex colors. |
 | `src/App.css` | Shared component styles: `.btn`, `.glass`, `.panel`, form fields. |
 | `src/components/Dashboard.jsx` | Main screen: GUILTY button, undo, settings. |
-| `src/components/WeeklyChart.jsx` | Monthly hearts and the seven-day chart. |
+| `src/components/WeeklyChart.jsx` | Weekly/monthly hearts and the seven-day chart. |
+| `src/lib/periods.js` | Week and month ranges, labels and counts (tested in `periods.test.js`; run `npm test`). |
 | `src/components/MenuSheet.jsx` | The bottom-sheet menu. |
 | `src/components/DialogProvider.jsx` | Themed `alert`/`confirm` dialogs. Use `useDialog()` instead of the browser's `alert()`/`confirm()`. |
 | `src/lib/db.js` | Local storage (IndexedDB) for logs and the user profile. |

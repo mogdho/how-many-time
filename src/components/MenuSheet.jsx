@@ -24,7 +24,8 @@ const MenuSheet = ({
     open,
     onClose,
     user,
-    monthCount,
+    periodCount,
+    periodLabel,
     isUpdateAvailable,
     onUpdate,
     isInstalled,
@@ -91,7 +92,7 @@ const MenuSheet = ({
                             <span className="flex-1 min-w-0">
                                 <span className="block font-bold text-text truncate">{user?.username}</span>
                                 <span className="block text-xs text-muted truncate">
-                                    {user?.guiltyPleasure} · {monthCount}{limit ? ` of ${limit}` : ''} this month
+                                    {user?.guiltyPleasure} · {periodCount}{limit ? ` of ${limit}` : ''} {periodLabel}
                                 </span>
                             </span>
                             <button
@@ -152,7 +153,7 @@ const MenuSheet = ({
                             <SheetRow
                                 icon={Settings}
                                 title="Change credentials"
-                                subtitle="Name, habit, monthly limit, PIN"
+                                subtitle="Name, habit, limit, week start, PIN"
                                 onClick={onOpenSettings}
                             />
 

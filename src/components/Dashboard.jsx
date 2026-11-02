@@ -8,6 +8,8 @@ import WeeklyChart from './WeeklyChart';
 import { Trash2, WifiOff, ShieldCheck, Menu } from 'lucide-react';
 import MenuSheet from './MenuSheet';
 import { useDialog } from './DialogProvider';
+import PeriodToggle, { WeekStartPicker } from './PeriodToggle';
+import { readPeriodSettings, countInCurrentPeriod } from '../lib/periods';
 
 const Dashboard = ({
     canInstall,
@@ -31,6 +33,8 @@ const Dashboard = ({
     const [editUsername, setEditUsername] = useState('');
     const [editGuiltyPleasure, setEditGuiltyPleasure] = useState('');
     const [editMonthlyLimit, setEditMonthlyLimit] = useState('');
+    const [editLimitPeriod, setEditLimitPeriod] = useState('month');
+    const [editWeekStartsOn, setEditWeekStartsOn] = useState(1);
     const [editPin, setEditPin] = useState('');
     const [editConfirmPin, setEditConfirmPin] = useState('');
     const [settingsError, setSettingsError] = useState('');
@@ -87,6 +91,9 @@ const Dashboard = ({
         setEditUsername(user?.username || '');
         setEditGuiltyPleasure(user?.guiltyPleasure || '');
         setEditMonthlyLimit(user?.monthlyLimit ? String(user.monthlyLimit) : '');
+        const settings = readPeriodSettings(user);
+        setEditLimitPeriod(settings.period);
+        setEditWeekStartsOn(settings.weekStartsOn);
         setEditPin('');
         setEditConfirmPin('');
         setSettingsError('');
@@ -106,6 +113,8 @@ const Dashboard = ({
         if (editUsername.trim()) updatedUser.username = editUsername.trim();
         updatedUser.guiltyPleasure = editGuiltyPleasure.trim() || 'Guilty Pleasure';
         updatedUser.monthlyLimit = editMonthlyLimit ? parseInt(editMonthlyLimit, 10) : user?.monthlyLimit;
+        updatedUser.limitPeriod = editLimitPeriod;
+        updatedUser.weekStartsOn = editWeekStartsOn;
 
         // If PIN fields are filled, update the PIN
         if (editPin || editConfirmPin) {
@@ -129,13 +138,9 @@ const Dashboard = ({
 
     const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-    const currentMonthCount = logs.filter(l => {
-        const d = new Date(l.timestamp);
-        const now = new Date();
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-
-    const isOverLimit = user?.monthlyLimit && currentMonthCount >= user.monthlyLimit;
+    const { period, weekStartsOn } = readPeriodSettings(user);
+    const isWeekly = period === 'week';
+    const currentPeriodCount = countInCurrentPeriod(logs, period, weekStartsOn);
 
     return (
         <div className="min-h-screen flex flex-col items-center">
@@ -176,8 +181,15 @@ const Dashboard = ({
                     {/* Charts */}
                     <div className="flex flex-col w-full gap-10 md:gap-12">
                         <section className="flex flex-col items-center gap-5">
-                            <h2 className="section-title">Monthly fault</h2>
-                            <WeeklyChart logs={logs} mode="historical" monthlyLimit={user?.monthlyLimit} trackingSince={user?.createdAt} />
+                            <h2 className="section-title">{isWeekly ? 'Weekly fault' : 'Monthly fault'}</h2>
+                            <WeeklyChart
+                                logs={logs}
+                                mode="historical"
+                                monthlyLimit={user?.monthlyLimit}
+                                trackingSince={user?.createdAt}
+                                limitPeriod={period}
+                                weekStartsOn={weekStartsOn}
+                            />
                         </section>
 
                         <section className="flex flex-col items-center gap-5">
@@ -250,7 +262,8 @@ const Dashboard = ({
                 open={menuOpen}
                 onClose={closeMenu}
                 user={user}
-                monthCount={currentMonthCount}
+                periodCount={currentPeriodCount}
+                periodLabel={isWeekly ? 'this week' : 'this month'}
                 isUpdateAvailable={isUpdateAvailable}
                 onUpdate={onUpdateClick}
                 isInstalled={isInstalled}
@@ -309,7 +322,11 @@ const Dashboard = ({
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label" htmlFor="edit-limit">Monthly limit</label>
+                                    <span className="field-label" id="edit-period-label">Limit per</span>
+                                    <PeriodToggle value={editLimitPeriod} onChange={setEditLimitPeriod} labelledBy="edit-period-label" />
+                                </div>
+                                <div>
+                                    <label className="field-label" htmlFor="edit-limit">{editLimitPeriod === 'week' ? 'Weekly limit' : 'Monthly limit'}</label>
                                     <input
                                         id="edit-limit"
                                         type="number"
@@ -321,6 +338,13 @@ const Dashboard = ({
                                         required
                                     />
                                 </div>
+                                {editLimitPeriod === 'week' && (
+                                    <div>
+                                        <span className="field-label" id="edit-week-start-label">Week starts on</span>
+                                        <WeekStartPicker value={editWeekStartsOn} onChange={setEditWeekStartsOn} labelledBy="edit-week-start-label" />
+                                        <p className="text-muted text-xs mt-2 text-left">Changes how weeks are grouped in the hearts.</p>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="field-label" htmlFor="edit-pin">New PIN</label>
